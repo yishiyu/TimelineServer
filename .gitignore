@@ -1,0 +1,9 @@
+# 配置文件
+.vscode/
+
+# 二进制文件
+build/
+bin/
+*.bin
+*.out
+*.o
