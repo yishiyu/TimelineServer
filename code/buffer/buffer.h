@@ -14,7 +14,7 @@ class Buffer {
   Buffer(int size = 1024) : buffer_(size), read_pos_(0), write_pos_(0){};
   ~Buffer() = default;
 
-  // 读取缓存(指针式操作)(获取可读字节数量/获取读取指针/移动写指针)
+  // 读取缓存(指针式操作)(获取可读字节数量/获取读取指针/移动读取指针)
   size_t ReadableBytes() const;
   const char* GetPeek() const;
   void MovePeek(size_t len);

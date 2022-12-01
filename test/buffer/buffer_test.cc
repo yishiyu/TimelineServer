@@ -1,30 +1,79 @@
 #include "buffer/buffer.h"
 
+#include <assert.h>
 #include <fcntl.h>
 #include <gtest/gtest.h>
 
 #include <iostream>
 #include <string>
 
+using std::cin;
+using std::cout;
+using std::endl;
+using std::string;
+
 namespace TimelineServer {
 
-TEST(Buffer, ReadAll) {
+const std::string input(
+    "Life comes in a package. This package includes happiness and sorrow, "
+    "failure and success, hope and despair. Life is a learning process. "
+    "Experiences in life teach us new lessons and make us a better person. "
+    "With each passing day we learn to handle various situations.");
+
+TEST(Buffer, ReadableBytes) {
   Buffer buffer(5);
-  std::string input("hello world!!!!!!!");
+  std::string result;
   buffer.Write(input);
 
-  std::cout << buffer.ReadAll() << std::endl;
+  EXPECT_TRUE(buffer.ReadableBytes() == input.size());
 
-  buffer.Write(input);
-  buffer.Write(input);
-  buffer.Write(input);
-  std::cout << buffer.ReadAll() << std::endl;
+  int move_size = 10;
+  buffer.MovePeek(move_size);
+  EXPECT_TRUE(buffer.ReadableBytes() == (input.size() - move_size));
+}
 
-  //   int fd = open("../LICENSE", O_RDONLY);
-  //   int error = 0;
+TEST(Buffer, Read) {
+  Buffer buffer(5);
+  std::string result;
+  buffer.Write(input);
 
-  //   buffer.ReadFd(fd, &error);
-  //   std::cout << buffer.ReadAll() << std::endl;
+  result = string(buffer.GetPeek(), buffer.ReadableBytes());
+  assert(result == input);
+
+  int sub_str_len = 10;
+  result = buffer.Read(sub_str_len);
+  EXPECT_TRUE(result == input.substr(0, sub_str_len));
+
+  result = buffer.ReadAll();
+  EXPECT_TRUE(result == input.substr(sub_str_len, input.size()));
+}
+
+TEST(Buffer, Write) {
+  Buffer buffer(5);
+  std::string result;
+
+  // void Write(const std::string& str);
+  buffer.Write(input);
+  result = buffer.ReadAll();
+  EXPECT_TRUE(result == input);
+
+  // void Write(const char* str, size_t len);
+  // void Write(const void* data, size_t len);
+  int sub_str_len = 10;
+  buffer.Write(input.data(), sub_str_len);
+  buffer.Write(static_cast<const void *>(input.data()), sub_str_len);
+  result = buffer.Read(sub_str_len);
+  EXPECT_TRUE(result == input.substr(0, sub_str_len));
+  result = buffer.Read(sub_str_len);
+  EXPECT_TRUE(result == input.substr(0, sub_str_len));
+
+  // void Write(const Buffer& buff);
+  buffer.Write(input.substr(0, sub_str_len));
+  buffer.Write(buffer);
+  result = buffer.Read(sub_str_len);
+  EXPECT_TRUE(result == input.substr(0, sub_str_len));
+  result = buffer.Read(sub_str_len);
+  EXPECT_TRUE(result == input.substr(0, sub_str_len));
 }
 
 }  // namespace TimelineServer

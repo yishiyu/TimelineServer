@@ -8,7 +8,7 @@ size_t Buffer::ReadableBytes() const { return write_pos_ - read_pos_; }
 
 const char* Buffer::GetPeek() const { return BeginPtr_() + read_pos_; }
 
-void Buffer::MovePeek(size_t len) { write_pos_ += len; }
+void Buffer::MovePeek(size_t len) { read_pos_ += len; }
 
 std::string Buffer::Read(size_t len) {
   // 取较小值
