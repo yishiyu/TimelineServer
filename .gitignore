@@ -7,3 +7,6 @@ bin/
 *.bin
 *.out
 *.o
+
+# 数据文件夹
+data/

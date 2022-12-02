@@ -1,6 +1,8 @@
 #pragma once
 
 #include <assert.h>
+#include <fcntl.h>
+#include <sys/uio.h>
 #include <unistd.h>
 
 #include <atomic>
