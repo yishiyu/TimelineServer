@@ -7,6 +7,8 @@
 #include <deque>
 #include <mutex>
 
+namespace TimelineServer {
+
 template <class T>
 class LogQueue {
  public:
@@ -131,3 +133,5 @@ void LogQueue<T>::flush() {
   // 虽然没想出来怎么才能到这个场景...
   cond_consumer_.notify_all();
 }
+
+}  // namespace TimelineServer
