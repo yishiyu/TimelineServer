@@ -49,6 +49,11 @@ std::string Buffer::read(size_t len) {
 
 std::string Buffer::read_all() { return read(get_readable_bytes()); }
 
+void Buffer::clear() {
+  read_pos_ = 0;
+  write_pos_ = 0;
+}
+
 // 写入函数
 
 void Buffer::write_buffer(const std::string& str) {

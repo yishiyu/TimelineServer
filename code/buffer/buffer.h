@@ -31,6 +31,8 @@ class Buffer {
   std::string read(size_t len);
   std::string read_all();
 
+  void clear();
+
   // 写入缓存
   void write_buffer(const std::string& str);
   void write_buffer(const char* str, size_t len);
