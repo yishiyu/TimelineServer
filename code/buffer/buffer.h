@@ -17,32 +17,31 @@ class Buffer {
   ~Buffer() = default;
 
   // 读取缓存(指针式操作)(获取可读字节数量/获取读取指针/移动读取指针)
-  size_t ReadableBytes() const;
-  const char* GetPeek() const;
-  void MovePeek(size_t len);
+  size_t get_readable_bytes() const;
+  char* get_read_ptr();
+  void move_read_ptr(size_t len);
+
+  // 写入缓存(指针式操作)
+  // 保证有这么多空间可以写入
+  void make_space(size_t len);
+  char* get_write_ptr();
+  void move_write_ptr(size_t len);
 
   // 读取缓存(string式操作)
-  std::string Read(size_t len);
-  std::string ReadAll();
+  std::string read(size_t len);
+  std::string read_all();
 
   // 写入缓存
-  void Write(const std::string& str);
-  void Write(const char* str, size_t len);
-  void Write(const void* data, size_t len);
-  void Write(const Buffer& buff);
+  void write_buffer(const std::string& str);
+  void write_buffer(const char* str, size_t len);
+  void write_buffer(const void* data, size_t len);
+  void write_buffer(Buffer& buff);
 
   // 文件接口
-  ssize_t ReadFd(int fd, int* Errno);
-  ssize_t WriteFd(int fd, int* Errno);
+  ssize_t read_fd(int fd, int* Errno);
+  ssize_t write_fd(int fd, int* Errno);
 
  private:
-  const char* BeginPtr_() const { return &(*buffer_.begin()); };
-  char* ReadPtr_() { return &(*buffer_.begin()) + read_pos_; }
-  char* WritePtr_() { return &(*buffer_.begin()) + write_pos_; }
-
-  // 保证有这么多空间可以写入
-  void MakeSpace_(size_t len);
-
   std::vector<char> buffer_;
   std::atomic<std::size_t> read_pos_;
   std::atomic<std::size_t> write_pos_;

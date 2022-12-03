@@ -21,59 +21,59 @@ const std::string input(
     "Experiences in life teach us new lessons and make us a better person. "
     "With each passing day we learn to handle various situations.");
 
-TEST(Buffer, ReadableBytes) {
+TEST(Buffer, get_readable_bytes) {
   Buffer buffer(5);
   std::string result;
-  buffer.Write(input);
+  buffer.write_buffer(input);
 
-  EXPECT_TRUE(buffer.ReadableBytes() == input.size());
+  EXPECT_TRUE(buffer.get_readable_bytes() == input.size());
 
   int move_size = 10;
-  buffer.MovePeek(move_size);
-  EXPECT_TRUE(buffer.ReadableBytes() == (input.size() - move_size));
+  buffer.move_read_ptr(move_size);
+  EXPECT_TRUE(buffer.get_readable_bytes() == (input.size() - move_size));
 }
 
-TEST(Buffer, Read) {
+TEST(Buffer, read) {
   Buffer buffer(5);
   std::string result;
-  buffer.Write(input);
+  buffer.write_buffer(input);
 
-  result = string(buffer.GetPeek(), buffer.ReadableBytes());
+  result = string(buffer.get_read_ptr(), buffer.get_readable_bytes());
   assert(result == input);
 
   int sub_str_len = 10;
-  result = buffer.Read(sub_str_len);
+  result = buffer.read(sub_str_len);
   EXPECT_TRUE(result == input.substr(0, sub_str_len));
 
-  result = buffer.ReadAll();
+  result = buffer.read_all();
   EXPECT_TRUE(result == input.substr(sub_str_len, input.size()));
 }
 
-TEST(Buffer, Write) {
+TEST(Buffer, write_buffer) {
   Buffer buffer(5);
   std::string result;
 
-  // void Write(const std::string& str);
-  buffer.Write(input);
-  result = buffer.ReadAll();
+  // void write_buffer(const std::string& str);
+  buffer.write_buffer(input);
+  result = buffer.read_all();
   EXPECT_TRUE(result == input);
 
-  // void Write(const char* str, size_t len);
-  // void Write(const void* data, size_t len);
+  // void write_buffer(const char* str, size_t len);
+  // void write_buffer(const void* data, size_t len);
   int sub_str_len = 10;
-  buffer.Write(input.data(), sub_str_len);
-  buffer.Write(static_cast<const void*>(input.data()), sub_str_len);
-  result = buffer.Read(sub_str_len);
+  buffer.write_buffer(input.data(), sub_str_len);
+  buffer.write_buffer(static_cast<const void*>(input.data()), sub_str_len);
+  result = buffer.read(sub_str_len);
   EXPECT_TRUE(result == input.substr(0, sub_str_len));
-  result = buffer.Read(sub_str_len);
+  result = buffer.read(sub_str_len);
   EXPECT_TRUE(result == input.substr(0, sub_str_len));
 
-  // void Write(const Buffer& buff);
-  buffer.Write(input.substr(0, sub_str_len));
-  buffer.Write(buffer);
-  result = buffer.Read(sub_str_len);
+  // void write_buffer(const Buffer& buff);
+  buffer.write_buffer(input.substr(0, sub_str_len));
+  buffer.write_buffer(buffer);
+  result = buffer.read(sub_str_len);
   EXPECT_TRUE(result == input.substr(0, sub_str_len));
-  result = buffer.Read(sub_str_len);
+  result = buffer.read(sub_str_len);
   EXPECT_TRUE(result == input.substr(0, sub_str_len));
 }
 
@@ -90,7 +90,7 @@ TEST(Buffer, File) {
     EXPECT_TRUE(false);
   }
   int error;
-  int len = buffer.ReadFd(fd->_fileno, &error);
+  int len = buffer.read_fd(fd->_fileno, &error);
   fclose(fd);
 
   if (len < 0) {
@@ -104,7 +104,7 @@ TEST(Buffer, File) {
     cout << "Cannot open " << file_name << ". errno:" << errno << endl;
     EXPECT_TRUE(false);
   }
-  len = buffer.WriteFd(fd->_fileno, &error);
+  len = buffer.write_fd(fd->_fileno, &error);
   fclose(fd);
 
   if (len < 0) {

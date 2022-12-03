@@ -4,52 +4,82 @@ namespace TimelineServer {
 
 // 读字节函数
 
-size_t Buffer::ReadableBytes() const { return write_pos_ - read_pos_; }
+size_t Buffer::get_readable_bytes() const { return write_pos_ - read_pos_; }
 
-const char* Buffer::GetPeek() const { return BeginPtr_() + read_pos_; }
+char* Buffer::get_read_ptr() { return &(*buffer_.begin()) + read_pos_; }
+char* Buffer::get_write_ptr() { return &(*buffer_.begin()) + write_pos_; }
 
-void Buffer::MovePeek(size_t len) { read_pos_ += len; }
+void Buffer::move_read_ptr(size_t len) { read_pos_ += len; }
 
-std::string Buffer::Read(size_t len) {
+void Buffer::make_space(size_t len) {
+  // 本身就有足够的空间
+  // 1024(size) - 1023(write_pos_) = 1(剩余1023这个位置)
+  int remaining_space = buffer_.size() - write_pos_;
+  if (remaining_space > len) {
+    return;
+  }
+
+  // 加上读取过的空白空间足够
+  // 1(read_pos_) = 1(剩余1)
+  int used_space = read_pos_;
+  if (remaining_space + used_space > len) {
+    // 将已写入内容前移
+    size_t readable_bytes = get_readable_bytes();
+    std::copy(get_read_ptr(), get_write_ptr(), &(*buffer_.begin()));
+    read_pos_ = 0;
+    write_pos_ = readable_bytes;
+    assert(readable_bytes == get_readable_bytes());
+  }
+
+  // 只能额外申请空间
+  // 直接大方地申请 len 长度
+  buffer_.resize(buffer_.size() + len);
+}
+
+void Buffer::move_write_ptr(size_t len) { write_pos_ += len; }
+
+std::string Buffer::read(size_t len) {
   // 取较小值
-  len = len > ReadableBytes() ? ReadableBytes() : len;
+  len = len > get_readable_bytes() ? get_readable_bytes() : len;
 
-  std::string str(GetPeek(), GetPeek() + len);
+  std::string str(get_read_ptr(), get_read_ptr() + len);
   read_pos_ += len;
   return str;
 }
 
-std::string Buffer::ReadAll() { return Read(ReadableBytes()); }
+std::string Buffer::read_all() { return read(get_readable_bytes()); }
 
 // 写入函数
 
-void Buffer::Write(const std::string& str) { Write(str.data(), str.size()); }
+void Buffer::write_buffer(const std::string& str) {
+  write_buffer(str.data(), str.size());
+}
 
-void Buffer::Write(const char* str, size_t len) {
+void Buffer::write_buffer(const char* str, size_t len) {
   assert(str);
-  MakeSpace_(len);
-  std::copy(str, str + len, WritePtr_());
+  make_space(len);
+  std::copy(str, str + len, get_write_ptr());
   write_pos_ += len;
 }
 
-void Buffer::Write(const void* data, size_t len) {
+void Buffer::write_buffer(const void* data, size_t len) {
   assert(data);
-  Write(static_cast<const char*>(data), len);
+  write_buffer(static_cast<const char*>(data), len);
 }
 
-void Buffer::Write(const Buffer& buff) {
-  Write(buff.GetPeek(), buff.ReadableBytes());
+void Buffer::write_buffer(Buffer& buff) {
+  write_buffer(buff.get_read_ptr(), buff.get_readable_bytes());
 }
 
 // 文件接口
 
-ssize_t Buffer::ReadFd(int fd, int* Errno) {
+ssize_t Buffer::read_fd(int fd, int* Errno) {
   char buff[65535];
   struct iovec iov[2];
   const size_t writable = buffer_.size() - write_pos_;
 
   // 优先直接写入 buffer
-  iov[0].iov_base = WritePtr_();
+  iov[0].iov_base = get_write_ptr();
   iov[0].iov_len = writable;
   // 如果文件大小超出 buffer 大小,则写在上面申请的 buff 数组中
   iov[1].iov_base = buff;
@@ -65,17 +95,17 @@ ssize_t Buffer::ReadFd(int fd, int* Errno) {
     // buffer 大小足够,没有写入申请的 buff 中
     write_pos_ += len;
   } else {
-    // buffer 不够大,再使用 Write 函数将 buff 中的内容转移到 buffer 中
+    // buffer 不够大,再使用 write_buffer 函数将 buff 中的内容转移到 buffer 中
     write_pos_ = buffer_.size();
-    Write(buff, len - writable);
+    write_buffer(buff, len - writable);
   }
 
   return len;
 }
 
-ssize_t Buffer::WriteFd(int fd, int* Errno) {
-  size_t read_size = ReadableBytes();
-  ssize_t len = write(fd, GetPeek(), read_size);
+ssize_t Buffer::write_fd(int fd, int* Errno) {
+  size_t read_size = get_readable_bytes();
+  ssize_t len = write(fd, get_write_ptr(), read_size);
 
   if (len < 0) {
     *Errno = errno;
@@ -84,33 +114,6 @@ ssize_t Buffer::WriteFd(int fd, int* Errno) {
 
   read_pos_ += len;
   return 0;
-}
-
-// 私有函数
-
-void Buffer::MakeSpace_(size_t len) {
-  // 本身就有足够的空间
-  // 1024(size) - 1023(write_pos_) = 1(剩余1023这个位置)
-  int remaining_space = buffer_.size() - write_pos_;
-  if (remaining_space > len) {
-    return;
-  }
-
-  // 加上读取过的空白空间足够
-  // 1(read_pos_) = 1(剩余1)
-  int used_space = read_pos_;
-  if (remaining_space + used_space > len) {
-    // 将已写入内容前移
-    size_t readable_bytes = ReadableBytes();
-    std::copy(ReadPtr_(), WritePtr_(), &(*buffer_.begin()));
-    read_pos_ = 0;
-    write_pos_ = readable_bytes;
-    assert(readable_bytes == ReadableBytes());
-  }
-
-  // 只能额外申请空间
-  // 直接大方地申请 len 长度
-  buffer_.resize(buffer_.size() + len);
 }
 
 }  // namespace TimelineServer
