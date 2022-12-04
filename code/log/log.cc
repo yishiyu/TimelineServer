@@ -65,9 +65,6 @@ void Log::write_buffer(LOG_LEVEL level, const char* format, ...) {
   struct tm* sysTime = localtime(&tSec);
   struct tm t = *sysTime;
 
-  // 实际参数
-  va_list args;
-
   // 日期变更/达到单文件行数上限,新建日志文件
   if (day_of_month_ != t.tm_mday ||
       (line_count_ && (line_count_ % MAX_LINES == 0))) {
@@ -110,6 +107,7 @@ void Log::write_buffer(LOG_LEVEL level, const char* format, ...) {
 
     log_message_level(level);
 
+    va_list args;
     va_start(args, format);
     buffer_.make_space(MAX_CHARS_IN_LINE);
     int m = vsnprintf(buffer_.get_write_ptr(), MAX_CHARS_IN_LINE, format, args);
@@ -178,19 +176,19 @@ void Log::async_write() {
 void Log::log_message_level(LOG_LEVEL level) {
   switch (level) {
     case LOG_LEVEL::ELL_DEBUG:
-      buffer_.write_buffer("[DEBUG]", 9);
+      buffer_.write_buffer("[DEBUG]:", 8);
       break;
     case LOG_LEVEL::ELL_INFO:
-      buffer_.write_buffer("[INFO] ", 9);
+      buffer_.write_buffer("[INFO] :", 8);
       break;
     case LOG_LEVEL::ELL_WARN:
-      buffer_.write_buffer("[WARN] ", 9);
+      buffer_.write_buffer("[WARN] :", 8);
       break;
     case LOG_LEVEL::ELL_ERROR:
-      buffer_.write_buffer("[ERROR]", 9);
+      buffer_.write_buffer("[ERROR]:", 8);
       break;
     default:
-      buffer_.write_buffer("[DEBUG]", 9);
+      buffer_.write_buffer("[DEBUG]:", 8);
       break;
   }
 }

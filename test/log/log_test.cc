@@ -18,8 +18,8 @@ namespace TimelineServer {
 TEST(Log, sync_log) {
   Log::get_instance()->init(LOG_LEVEL::ELL_DEBUG, "../data/log", ".log", 0);
 
-  string debug_message = "debug log";
-  LOG_DEBUG("%s", debug_message.data());
+
+  LOG_DEBUG("%s", "debug log");
 
   Log::get_instance()->flush();
 }
