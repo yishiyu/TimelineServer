@@ -75,6 +75,11 @@ TEST(Buffer, write_buffer) {
   EXPECT_TRUE(result == input.substr(0, sub_str_len));
   result = buffer.read(sub_str_len);
   EXPECT_TRUE(result == input.substr(0, sub_str_len));
+
+  string text = "123456";
+  buffer.write_buffer("123456", 6);
+  result = buffer.read(6);
+  EXPECT_TRUE(text == result);
 }
 
 TEST(Buffer, File) {
