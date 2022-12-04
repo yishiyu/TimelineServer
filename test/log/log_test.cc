@@ -15,16 +15,13 @@ using std::string;
 
 namespace TimelineServer {
 
-// TEST(Buffer, get_readable_bytes) {
-//   Buffer buffer(5);
-//   std::string result;
-//   buffer.write_buffer(input);
+TEST(Log, sync_log) {
+  Log::get_instance()->init(LOG_LEVEL::ELL_DEBUG, "../data/log", ".log", 0);
 
-//   EXPECT_TRUE(buffer.get_readable_bytes() == input.size());
+  string debug_message = "debug log";
+  LOG_DEBUG("%s", debug_message.data());
 
-//   int move_size = 10;
-//   buffer.move_read_ptr(move_size);
-//   EXPECT_TRUE(buffer.get_readable_bytes() == (input.size() - move_size));
-// }
+  Log::get_instance()->flush();
+}
 
 }  // namespace TimelineServer

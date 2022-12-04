@@ -21,8 +21,8 @@ const int MAX_CHARS_IN_LINE = 1000;
 const int MAX_LINES = 50000;
 
 enum LOG_LEVEL {
-  ELL_INFO,
   ELL_DEBUG,
+  ELL_INFO,
   ELL_WARN,
   ELL_ERROR,
 };
@@ -64,13 +64,30 @@ class Log {
   std::unique_ptr<std::thread> write_thread_;
 };
 
-// #define LOG_BASE(level, format, ...) \
-//   do {                               \
-//     Log* log = Log::get_instance();  \
-//     if (log->get_level() <= level) {
-//       log->write_buffer(level, format)
-// }
+// 使用 while(0) 把宏包起来,可以使其不受括号,分号等的影响
+#define LOG_BASE(level, format, ...)                   \
+  do {                                                 \
+    Log* log = Log::get_instance();                    \
+    if (log->get_level() <= level) {                   \
+      log->write_buffer(level, format, __VA_ARGS__); \
+    }                                                  \
+  } while (0);
 
-// }
-// while (0)
+#define LOG_DEBUG(format, ...)                             \
+  do {                                                     \
+    LOG_BASE(LOG_LEVEL::ELL_DEBUG, format, __VA_ARGS__); \
+  } while (0);
+#define LOG_INFO(format, ...)                             \
+  do {                                                    \
+    LOG_BASE(LOG_LEVEL::ELL_INFO, format, __VA_ARGS__); \
+  } while (0);
+#define LOG_WARN(format, ...)                             \
+  do {                                                    \
+    LOG_BASE(LOG_LEVEL::ELL_WARN, format, __VA_ARGS__); \
+  } while (0);
+#define LOG_ERROR(format, ...)                             \
+  do {                                                     \
+    LOG_BASE(LOG_LEVEL::ELL_ERROR, format, __VA_ARGS__); \
+  } while (0);
+
 }  // namespace TimelineServer

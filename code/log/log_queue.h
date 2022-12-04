@@ -64,7 +64,7 @@ bool LogQueue<T>::is_empty() {
 template <class T>
 bool LogQueue<T>::is_full() {
   std::lock_guard<std::mutex> locker(deq_mtx_);
-  return deq_.size >= capacity_;
+  return deq_.size() >= capacity_;
 }
 
 template <class T>

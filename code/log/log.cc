@@ -116,6 +116,7 @@ void Log::write_buffer(LOG_LEVEL level, const char* format, ...) {
     buffer_.move_write_ptr(m);
     va_end(args);
 
+    buffer_.make_space(2);
     buffer_.write_buffer("\n\0", 2);
 
     if (is_async_ && log_queue_ && !log_queue_->is_full()) {
@@ -168,19 +169,19 @@ void Log::async_thread_func() { get_instance()->async_write(); }
 void Log::async_write() {
   string log_message = "";
 
-  std::lock_guard<std::mutex> locker(fp_mtx_);
   while (log_queue_->pop(log_message)) {
+    std::lock_guard<std::mutex> locker(fp_mtx_);
     fputs(log_message.data(), fp_);
   }
 }
 
 void Log::log_message_level(LOG_LEVEL level) {
   switch (level) {
-    case LOG_LEVEL::ELL_INFO:
-      buffer_.write_buffer("[INFO] ", 9);
-      break;
     case LOG_LEVEL::ELL_DEBUG:
       buffer_.write_buffer("[DEBUG]", 9);
+      break;
+    case LOG_LEVEL::ELL_INFO:
+      buffer_.write_buffer("[INFO] ", 9);
       break;
     case LOG_LEVEL::ELL_WARN:
       buffer_.write_buffer("[WARN] ", 9);
