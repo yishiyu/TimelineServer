@@ -10,12 +10,12 @@ void Timer::add_timer(timer_id id, int timeout, timeout_cb& call_back) {
     // 新节点
     i = heap_.size();
     timer_ref_[id] = i;
-    heap_.push_back({id, clock::now() + ms(timeout), call_back});
+    heap_.push_back({id, Clock::now() + MS(timeout), call_back});
     siftup_(i);
   } else {
     // 已有节点
     i = timer_ref_[id];
-    heap_[i].expires = clock::now() + ms(timeout);
+    heap_[i].expires = Clock::now() + MS(timeout);
     heap_[i].cb = call_back;
 
     // 调整该元素位置
@@ -45,7 +45,7 @@ void Timer::adjust(timer_id id, int timeout) {
   // 保证该元素存在
   assert(!heap_.empty() && timer_ref_.count(id) > 0);
   // 调整触发时间
-  heap_[timer_ref_[id]].expires = clock::now() + ms(timeout);
+  heap_[timer_ref_[id]].expires = Clock::now() + MS(timeout);
 
   // 调整该元素位置
   if (!siftdown_(timer_ref_[id], heap_.size())) {
@@ -65,7 +65,7 @@ void Timer::tick() {
 
   while (!heap_.empty()) {
     TimerNode& node = heap_.front();
-    ms time_left = std::chrono::duration_cast<ms>(node.expires - clock::now());
+    MS time_left = std::chrono::duration_cast<MS>(node.expires - Clock::now());
     if (time_left.count() > 0) {
       break;
     }
@@ -82,7 +82,7 @@ int Timer::get_next_timeout() {
   size_t res = -1;
   if (!heap_.empty()) {
     auto expires = heap_.front().expires;
-    res = std::chrono::duration_cast<ms>(expires - clock::now()).count();
+    res = std::chrono::duration_cast<MS>(expires - Clock::now()).count();
   }
 
   return res;

@@ -9,9 +9,9 @@
 
 typedef std::function<void()> timeout_cb;
 typedef unsigned int timer_id;
-typedef std::chrono::high_resolution_clock clock;
-typedef std::chrono::microseconds ms;
-typedef clock::time_point time_stamp;
+typedef std::chrono::high_resolution_clock Clock;
+typedef std::chrono::microseconds MS;
+typedef Clock::time_point time_stamp;
 
 namespace TimelineServer {
 
