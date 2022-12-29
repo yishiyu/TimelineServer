@@ -10,7 +10,7 @@
 typedef std::function<void()> timeout_cb;
 typedef unsigned int timer_id;
 typedef std::chrono::high_resolution_clock Clock;
-typedef std::chrono::microseconds MS;
+typedef std::chrono::milliseconds MS;
 typedef Clock::time_point time_stamp;
 
 namespace TimelineServer {
@@ -28,7 +28,7 @@ class Timer {
   ~Timer() { clear(); };
 
   // 增加/删除定时器
-  void add_timer(timer_id id, int timeout, timeout_cb& call_back);
+  void add_timer(timer_id id, int timeout, const timeout_cb& call_back);
   void pop_timer();
 
   // 调用某个定时器的回调函数/重新调整某个定时器的时间
@@ -48,7 +48,7 @@ class Timer {
   bool siftdown_(size_t i, size_t n);
 
   void swap_(size_t i, size_t j);
-  
+
   // 小顶堆,0下标对应最小元素
   std::vector<TimerNode> heap_;
   std::unordered_map<timer_id, size_t> timer_ref_;

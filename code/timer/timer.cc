@@ -2,7 +2,7 @@
 
 namespace TimelineServer {
 
-void Timer::add_timer(timer_id id, int timeout, timeout_cb& call_back) {
+void Timer::add_timer(timer_id id, int timeout, const timeout_cb& call_back) {
   assert(id >= 0);
   size_t i;
 
