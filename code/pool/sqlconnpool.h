@@ -40,4 +40,26 @@ class SQLConnPool {
   sem_t sem_id_;
 };
 
+// SQLConn RAII wapper
+class SQLConn {
+ public:
+  SQLConn() {
+    pool_ = SQLConnPool::get_instance();
+    conn_ = pool_->get_connect();
+  }
+
+  bool is_valid() { return (connection == nullptr); }
+
+  ~SQLConn() {
+    if (connection != nullptr) {
+      pool_->free_connect(connection);
+    }
+  }
+
+  sql::Connection* connection;
+
+ private:
+  SQLConnPool* pool_;
+};
+
 }  // namespace TimelineServer
