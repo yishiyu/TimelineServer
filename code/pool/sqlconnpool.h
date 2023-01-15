@@ -45,10 +45,10 @@ class SQLConn {
  public:
   SQLConn() {
     pool_ = SQLConnPool::get_instance();
-    conn_ = pool_->get_connect();
+    connection = pool_->get_connect();
   }
 
-  bool is_valid() { return (connection == nullptr); }
+  bool is_valid() { return (connection != nullptr); }
 
   ~SQLConn() {
     if (connection != nullptr) {
