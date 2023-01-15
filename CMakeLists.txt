@@ -40,10 +40,12 @@ foreach(test_file ${TEST_FILE})
 
   # 链接测试文件
   # 链接mysqlclient
+  # 链接mysqlcppconn
   target_link_libraries(
     ${target}
     gtest_main
     mysqlclient
+    mysqlcppconn
   )
 
   gtest_discover_tests(${target})
