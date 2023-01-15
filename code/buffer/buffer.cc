@@ -110,7 +110,7 @@ ssize_t Buffer::read_fd(int fd, int* Errno) {
 
 ssize_t Buffer::write_fd(int fd, int* Errno) {
   size_t read_size = get_readable_bytes();
-  ssize_t len = write(fd, get_write_ptr(), read_size);
+  ssize_t len = write(fd, get_read_ptr(), read_size);
 
   if (len < 0) {
     *Errno = errno;
