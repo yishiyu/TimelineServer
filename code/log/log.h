@@ -69,25 +69,25 @@ class Log {
   do {                                                 \
     Log* log = Log::get_instance();                    \
     if (log->get_level() <= level) {                   \
-      log->write_buffer(level, format, __VA_ARGS__); \
+      log->write_buffer(level, format, ##__VA_ARGS__); \
     }                                                  \
   } while (0);
 
 #define LOG_DEBUG(format, ...)                             \
   do {                                                     \
-    LOG_BASE(LOG_LEVEL::ELL_DEBUG, format, __VA_ARGS__); \
+    LOG_BASE(LOG_LEVEL::ELL_DEBUG, format, ##__VA_ARGS__); \
   } while (0);
 #define LOG_INFO(format, ...)                             \
   do {                                                    \
-    LOG_BASE(LOG_LEVEL::ELL_INFO, format, __VA_ARGS__); \
+    LOG_BASE(LOG_LEVEL::ELL_INFO, format, ##__VA_ARGS__); \
   } while (0);
 #define LOG_WARN(format, ...)                             \
   do {                                                    \
-    LOG_BASE(LOG_LEVEL::ELL_WARN, format, __VA_ARGS__); \
+    LOG_BASE(LOG_LEVEL::ELL_WARN, format, ##__VA_ARGS__); \
   } while (0);
 #define LOG_ERROR(format, ...)                             \
   do {                                                     \
-    LOG_BASE(LOG_LEVEL::ELL_ERROR, format, __VA_ARGS__); \
+    LOG_BASE(LOG_LEVEL::ELL_ERROR, format, ##__VA_ARGS__); \
   } while (0);
 
 }  // namespace TimelineServer
