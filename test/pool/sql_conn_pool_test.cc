@@ -1,4 +1,4 @@
-#include "pool/sqlconnpool.h"
+#include "pool/sql_conn_pool.h"
 
 #include <assert.h>
 #include <cppconn/statement.h>
