@@ -59,8 +59,9 @@ HttpResponse::~HttpResponse() {
   unmap_file();
 }
 
-void HttpResponse::init(const std::string& src_dir, std::string& file_path,
-                        bool is_keep_alive, int code) {
+void HttpResponse::init(const std::string& src_dir,
+                        const std::string& file_path, bool is_keep_alive,
+                        int code) {
   src_dir_ = src_dir;
   file_path_ = file_path;
   is_keep_alive_ = is_keep_alive;
@@ -69,17 +70,20 @@ void HttpResponse::init(const std::string& src_dir, std::string& file_path,
 
 void HttpResponse::make_response(Buffer& buffer) {
   // 判断响应码
+  LOG_DEBUG("Try to return file \"%s\"", (src_dir_ + file_path_).data());
   if (stat((src_dir_ + file_path_).data(), &mm_file_stat_) < 0 ||
       S_ISDIR(mm_file_stat_.st_mode)) {
     // https://man7.org/linux/man-pages/man2/lstat.2.html
     // stat 失败时返回 -1
     // 或者找到的目标是文件夹
     code_ = 404;
+    LOG_DEBUG("\"%s\" not Found.", (src_dir_ + file_path_).data());
   } else if (!(mm_file_stat_.st_mode & S_IROTH)) {
     // IROTH ==> Is Readable for OTHers
     // Read permission bit for other users. Usually 04.
     // 不允许读取
     code_ = 403;
+    LOG_DEBUG("\"%s\" permission denied.", (src_dir_ + file_path_).data());
   } else if (code_ == -1) {
     // 可能初始化的时候传入了其他错误码,不应该覆盖成200
     code_ = 200;
@@ -113,7 +117,7 @@ void HttpResponse::add_state_line_(Buffer& buff) {
     status = CODE_STATUS.find(code_)->second;
   }
 
-  buff.write_buffer("HTTP/1.1" + std::to_string(code_) + " " + status + "\r\n");
+  buff.write_buffer("HTTP/1.1 " + std::to_string(code_) + " " + status + "\r\n");
 }
 
 void HttpResponse::add_header_(Buffer& buff) {

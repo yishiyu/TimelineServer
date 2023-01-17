@@ -18,7 +18,7 @@ class HttpResponse {
   HttpResponse();
   ~HttpResponse();
 
-  void init(const std::string& src_dir, std::string& file_path,
+  void init(const std::string& src_dir, const std::string& file_path,
             bool is_keep_alive = false, int code = -1);
 
   void make_response(Buffer& buffer);
