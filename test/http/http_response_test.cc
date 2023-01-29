@@ -19,7 +19,8 @@ class HttpResponseTest : public ::testing::Test {
  protected:
   // // 初始化数据
   void SetUp() override {
-    Log::get_instance()->init(LOG_LEVEL::ELL_DEBUG, "../data/log", ".log", 0);
+    Log::get_instance()->init(LOG_LEVEL::ELL_DEBUG, "../data/test/log", ".log",
+                              0);
   }
 
   // override TearDown 来清理数据
@@ -28,7 +29,7 @@ class HttpResponseTest : public ::testing::Test {
 
 TEST_F(HttpResponseTest, success) {
   HttpResponse response;
-  response.init("../data/", "test_file.txt", false, 200);
+  response.init("../data/test/http/", "response_success.txt", false, 200);
 
   Buffer buff;
 
@@ -40,7 +41,7 @@ TEST_F(HttpResponseTest, success) {
 
 TEST_F(HttpResponseTest, failure) {
   HttpResponse response;
-  response.init("../data/", "error_file.txt", false, 200);
+  response.init("../data/test/http/", "response_error.txt", false, 200);
 
   Buffer buff;
 

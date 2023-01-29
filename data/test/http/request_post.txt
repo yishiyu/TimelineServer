@@ -1,0 +1,12 @@
+POST /index HTTP/1.1
+Host: www.zhihu.com
+User-Agent: Mozilla/5.0
+Connection: keep-alive
+Content-Type: application/json
+
+{
+    "user": "yishiyu",
+    "passwd": "AMDYES!",
+    "timestamp": "12345678",
+    "followers": ["lemain","yuigahama","megumin"]
+}

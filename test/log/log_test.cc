@@ -16,7 +16,7 @@ using std::string;
 namespace TimelineServer {
 
 TEST(Log, sync_log) {
-  Log::get_instance()->init(LOG_LEVEL::ELL_INFO, "../data/log", ".log", 0);
+  Log::get_instance()->init(LOG_LEVEL::ELL_INFO, "../data/test/log", ".log", 0);
 
   LOG_INFO("%s", "============== sync_log =============")
   LOG_DEBUG("%s", "a debug message written by sync_log");
@@ -28,7 +28,8 @@ TEST(Log, sync_log) {
 }
 
 TEST(Log, async_log) {
-  Log::get_instance()->init(LOG_LEVEL::ELL_DEBUG, "../data/log", ".log", 100);
+  Log::get_instance()->init(LOG_LEVEL::ELL_DEBUG, "../data/test/log", ".log",
+                            100);
 
   LOG_INFO("%s", "============= async_log =============")
   LOG_DEBUG("%s", "a debug message written by async_log");

@@ -20,8 +20,8 @@ class SQLPoolTest : public ::testing::Test {
  protected:
   // // 初始化数据
   void SetUp() override {
-    Log::get_instance()->init(LOG_LEVEL::ELL_INFO,
-                              "../data/sqlconnpool_test_log", ".log", 0);
+    Log::get_instance()->init(LOG_LEVEL::ELL_INFO, "../data/test/log", ".log",
+                              0);
 
     pool = SQLConnPool::get_instance();
     pool->init("localhost", 3306, "root", "explosion", "timelineserver",

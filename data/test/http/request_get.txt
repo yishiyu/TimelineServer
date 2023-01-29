@@ -1,0 +1,4 @@
+GET /index HTTP/1.1
+Host: www.zhihu.com
+User-Agent: Mozilla/5.0
+Connection: keep-alive

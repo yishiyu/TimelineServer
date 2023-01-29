@@ -21,10 +21,11 @@ class HttpRequestTest : public ::testing::Test {
  protected:
   // 初始化数据
   void SetUp() override {
-    Log::get_instance()->init(LOG_LEVEL::ELL_DEBUG, "../data/log", ".log", 0);
+    Log::get_instance()->init(LOG_LEVEL::ELL_DEBUG, "../data/test/log", ".log",
+                              0);
 
-    request_file_get = "../data/request_get.txt";
-    request_file_post = "../data/request_post.txt";
+    request_file_get = "../data/test/http/request_get.txt";
+    request_file_post = "../data/test/http/request_post.txt";
 
     fd_get = fopen(request_file_get.data(), "r");
     fd_post = fopen(request_file_post.data(), "r");

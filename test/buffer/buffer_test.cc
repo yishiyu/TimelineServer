@@ -85,8 +85,8 @@ TEST(Buffer, write_buffer) {
 TEST(Buffer, File) {
   Buffer buffer(5);
   // Building CXX object CMakeFiles/buffer_test.dir/test/buffer/buffer_test.cc.o
-  const string file_name("../data/test_file.txt");
-  const string dest_file("../data/des.txt");
+  const string file_name("../data/test/buffer/buffer_read.txt");
+  const string dest_file("../data/test/buffer/buffer_write.txt");
 
   // 读取文件
   FILE* fd = fopen(file_name.data(), "r");

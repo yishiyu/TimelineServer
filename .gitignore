@@ -9,4 +9,13 @@ bin/
 *.o
 
 # 数据文件夹
-data/
+data/log/*
+data/resources/*
+data/test/*/*
+
+# 测试数据文件
+!data/test/buffer/buffer_read.txt
+!data/test/http/request_get.txt
+!data/test/http/request_post.txt
+!data/test/http/response_success.txt
+!data/test/log
