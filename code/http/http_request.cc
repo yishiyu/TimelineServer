@@ -2,7 +2,7 @@
 
 namespace TimelineServer {
 
-const std::unordered_set<string> ROUTER = {
+const std::unordered_set<string> HttpRequest::ROUTER = {
     "/index",
     "/welcome",
 };
@@ -13,13 +13,35 @@ void HttpRequest::init() {
   path_ = "";
   version_ = "";
   body_ = "";
-  is_keep_alive_ = false;
 
   header_.clear();
 }
 
+bool HttpRequest::get_is_keep_alive() const {
+  if (header_.count("Connection") == 1) {
+    return header_.find("Connection")->second == "keep-alive";
+  }
+  return false;
+}
+
+const string HttpRequest::query_header(const string& key) const {
+  assert(key != "");
+  if (header_.count(key) == 1) {
+    return header_.find(key)->second;
+  }
+  return "";
+}
+
+const string HttpRequest::query_header(const char* key) const {
+  assert(key != nullptr);
+  if (header_.count(key) == 1) {
+    return header_.find(key)->second;
+  }
+  return "";
+}
+
 bool HttpRequest::parse(Buffer& buffer) {
-  const char CRLF[] = "\r\n";
+  const char CRLF[] = "\n";
   if (buffer.get_readable_bytes() <= 0) {
     return false;
   }
@@ -27,7 +49,7 @@ bool HttpRequest::parse(Buffer& buffer) {
   while (buffer.get_readable_bytes() && state_ != PARSE_STATE::FINISH) {
     // 寻找换行符
     const char* line_end = std::search(buffer.get_read_ptr(),
-                                       buffer.get_write_ptr(), CRLF, CRLF + 2);
+                                       buffer.get_write_ptr(), CRLF, CRLF + 1);
     string line(const_cast<const char*>(buffer.get_read_ptr()), line_end);
 
     switch (state_) {
@@ -60,7 +82,8 @@ bool HttpRequest::parse(Buffer& buffer) {
       default:
         break;
     }
-    buffer.move_read_ptr(line_end - buffer.get_read_ptr());
+    // +1是额外的换行符
+    buffer.move_read_ptr(line.size() + 1);
   }
 
   return true;

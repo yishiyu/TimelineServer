@@ -34,11 +34,17 @@ class HttpRequest {
   string& get_path() { return path_; };
   string get_method() const { return method_; };
   string get_version() const { return version_; };
-  bool is_keep_alive() const { return is_keep_alive_; };
+
+  bool get_is_keep_alive() const;
+
+  const string query_header(const string& key) const;
+  const string query_header(const char* key) const;
+  const std::unordered_map<string, string> get_header() const { return header_; }
 
   // TODO: 解析Post请求
-  // string get_post(const string& key) const;
-  // string get_post(const char* key) const;
+  // const string query_post(const string& key) const;
+  // const string query_post(const char* key) const;
+  // const std::unordered_map<string, string> get_post() const { return post_; }
 
  private:
   // 解析HTTP请求
@@ -61,7 +67,6 @@ class HttpRequest {
   string path_;
   string version_;
   string body_;
-  bool is_keep_alive_;
 
   std::unordered_map<string, string> header_;
   // std::unordered_map<string, string> post_;
