@@ -46,6 +46,7 @@ foreach(test_file ${TEST_FILE})
     gtest_main
     mysqlclient
     mysqlcppconn
+    json11
   )
 
   gtest_discover_tests(${target})

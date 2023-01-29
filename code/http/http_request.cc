@@ -15,6 +15,7 @@ void HttpRequest::init() {
   body_ = "";
 
   header_.clear();
+  post_ = Json();
 }
 
 bool HttpRequest::get_is_keep_alive() const {
@@ -40,6 +41,16 @@ const string HttpRequest::query_header(const char* key) const {
   return "";
 }
 
+const Json HttpRequest::query_post(const string& key) const {
+  assert(key != "");
+  return post_[key];
+}
+
+const Json HttpRequest::query_post(const char* key) const {
+  assert(key != nullptr);
+  return post_[string(key)];
+}
+
 bool HttpRequest::parse(Buffer& buffer) {
   const char CRLF[] = "\n";
   if (buffer.get_readable_bytes() <= 0) {
@@ -47,10 +58,17 @@ bool HttpRequest::parse(Buffer& buffer) {
   }
 
   while (buffer.get_readable_bytes() && state_ != PARSE_STATE::FINISH) {
-    // 寻找换行符
-    const char* line_end = std::search(buffer.get_read_ptr(),
-                                       buffer.get_write_ptr(), CRLF, CRLF + 1);
-    string line(const_cast<const char*>(buffer.get_read_ptr()), line_end);
+    string line;
+
+    if (state_ != PARSE_STATE::BODY) {
+      // 解析到下一个换行符
+      const char* line_end = std::search(
+          buffer.get_read_ptr(), buffer.get_write_ptr(), CRLF, CRLF + 1);
+      line = string(const_cast<const char*>(buffer.get_read_ptr()), line_end);
+    } else {
+      // 解析剩下所有内容
+      line = buffer.read_all();
+    }
 
     switch (state_) {
       case PARSE_STATE::REQUEST_LINE:
@@ -59,7 +77,7 @@ bool HttpRequest::parse(Buffer& buffer) {
           return false;
         }
         // 成功解析后解析请求文件路径
-        path_decorate_();
+        path_complete_();
         state_ = PARSE_STATE::HEADERS;
         break;
 
@@ -67,23 +85,22 @@ bool HttpRequest::parse(Buffer& buffer) {
         if (!parse_header_(line)) {
           state_ = PARSE_STATE::BODY;
         }
-        if (buffer.get_readable_bytes() <= 2) {
-          // Get请求可能没有请求体,直接结束
-          state_ = PARSE_STATE::FINISH;
-        }
         break;
 
       case PARSE_STATE::BODY:
         if (!parse_body_(line)) {
-          state_ = PARSE_STATE::FINISH;
+          state_ = PARSE_STATE::ERROR;
         }
+        state_ = PARSE_STATE::FINISH;
         break;
 
       default:
         break;
     }
-    // +1是额外的换行符
-    buffer.move_read_ptr(line.size() + 1);
+    if (state_ != PARSE_STATE::BODY) {
+      // +1是额外的换行符
+      buffer.move_read_ptr(line.size() + 1);
+    }
   }
 
   return true;
@@ -123,13 +140,27 @@ bool HttpRequest::parse_header_(const string& line) {
 }
 
 bool HttpRequest::parse_body_(const string& line) {
-  // TODO 解析body,如json
+  if (method_ != "POST") {
+    LOG_ERROR("Method error,expect POST but get %s", method_.data());
+    return false;
+  }
 
-  // 解析结束或发生错误
-  return false;
+  if (header_["Content-Type"] == "application/json") {
+    // 只解析json格式请求
+    string error;
+    post_ = Json::parse(line, error);
+
+    if (error != "") {
+      // 解析发生错误
+      LOG_ERROR("Body(json) parse error: %s", error.data());
+      return false;
+    }
+  }
+
+  return true;
 }
 
-void HttpRequest::path_decorate_() {
+void HttpRequest::path_complete_() {
   // 为默认路径添加html后缀
   // 如 index, login
   if (path_ == "/") {

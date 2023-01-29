@@ -1,6 +1,7 @@
 #pragma once
 #include <errno.h>
 
+#include <json11.hpp>
 #include <regex>
 #include <string>
 #include <unordered_map>
@@ -9,6 +10,7 @@
 #include "buffer/buffer.h"
 #include "log/log.h"
 
+using json11::Json;
 using std::string;
 
 namespace TimelineServer {
@@ -39,12 +41,15 @@ class HttpRequest {
 
   const string query_header(const string& key) const;
   const string query_header(const char* key) const;
-  const std::unordered_map<string, string> get_header() const { return header_; }
+  const std::unordered_map<string, string> get_header() const {
+    return header_;
+  }
 
-  // TODO: 解析Post请求
-  // const string query_post(const string& key) const;
-  // const string query_post(const char* key) const;
-  // const std::unordered_map<string, string> get_post() const { return post_; }
+  const Json query_post(const string& key) const;
+  const Json query_post(const char* key) const;
+  const Json get_post() const {
+    return post_;
+  }
 
  private:
   // 解析HTTP请求
@@ -52,11 +57,8 @@ class HttpRequest {
   bool parse_header_(const string& line);
   bool parse_body_(const string& line);
 
-  // 对解析结果进行额外处理
-  void path_decorate_();
-
-  // TODO: 解析Post请求
-  // void parse_post_();
+  // 工具函数(路径补全/json解析)
+  void path_complete_();
 
   // TODO: 用户验证
   // static bool user_verify(const string& name, const string& pwd, bool
@@ -69,7 +71,7 @@ class HttpRequest {
   string body_;
 
   std::unordered_map<string, string> header_;
-  // std::unordered_map<string, string> post_;
+  Json post_;
 
   static const std::unordered_set<string> ROUTER;
 };
