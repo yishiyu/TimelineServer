@@ -9,7 +9,13 @@ size_t Buffer::get_readable_bytes() const { return write_pos_ - read_pos_; }
 char* Buffer::get_read_ptr() { return &(*buffer_.begin()) + read_pos_; }
 char* Buffer::get_write_ptr() { return &(*buffer_.begin()) + write_pos_; }
 
-void Buffer::move_read_ptr(size_t len) { read_pos_ += len; }
+void Buffer::move_read_ptr(size_t len) {
+  if (len > (write_pos_ - read_pos_)) {
+    read_pos_ = write_pos_ = 0;
+  } else {
+    read_pos_ += len;
+  }
+}
 
 void Buffer::make_space(size_t len) {
   // 本身就有足够的空间
@@ -36,7 +42,12 @@ void Buffer::make_space(size_t len) {
   buffer_.resize(buffer_.size() + len);
 }
 
-void Buffer::move_write_ptr(size_t len) { write_pos_ += len; }
+void Buffer::move_write_ptr(size_t len) {
+  // 使用这个函数很危险,但在使用 snprintf 函数的时候必须这么用
+  // 在使用这个函数之前必须使用 make_space 扩展出足够的空间
+  assert(buffer_.size() >= len);
+  write_pos_ += len;
+}
 
 std::string Buffer::read(size_t len) {
   // 取较小值
