@@ -2,6 +2,10 @@
 
 namespace TimelineServer {
 
+bool HttpConn::is_ET_;
+string HttpConn::src_dir_;
+std::atomic<int> HttpConn::user_count_;
+
 HttpConn::HttpConn() {
   sock_fd_ = -1;
   sock_addr_ = {0};
@@ -13,7 +17,7 @@ HttpConn::~HttpConn() { close_conn(); }
 void HttpConn::init(int sock_fd, const sockaddr_in& sock_addr) {
   assert(sock_fd > 0);
   // 设置状态
-  user_count_++;
+  HttpConn::user_count_++;
   sock_fd_ = sock_fd;
   sock_addr_ = sock_addr;
   is_closed_ = false;
@@ -30,7 +34,7 @@ void HttpConn::close_conn() {
   if (false == is_closed_) {
     // 设置状态
     is_closed_ = true;
-    user_count_--;
+    HttpConn::user_count_--;
     // 关闭资源
     close(sock_fd_);
     response_.unmap_file();

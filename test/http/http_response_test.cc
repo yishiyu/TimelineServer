@@ -29,7 +29,7 @@ class HttpResponseTest : public ::testing::Test {
 
 TEST_F(HttpResponseTest, success) {
   HttpResponse response;
-  response.init("../data/test/http/", "response_success.txt", false, 200);
+  response.init("../data/test/http/", "response_resource.txt", false, 200);
 
   Buffer buff;
 

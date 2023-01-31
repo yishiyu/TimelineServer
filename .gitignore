@@ -17,5 +17,7 @@ data/test/*/*
 !data/test/buffer/buffer_read.txt
 !data/test/http/request_get.txt
 !data/test/http/request_post.txt
-!data/test/http/response_success.txt
+!data/test/http/response_resource.txt
+!data/test/http/conn_request_fail.txt
+!data/test/http/conn_request_success.txt
 !data/test/log
