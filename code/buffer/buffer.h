@@ -40,8 +40,9 @@ class Buffer {
   void write_buffer(Buffer& buff);
 
   // 文件接口
-  ssize_t read_fd(int fd, int* Errno);
-  ssize_t write_fd(int fd, int* Errno);
+  // errno_后缀是为了和系统的errno变量区分
+  ssize_t read_fd(int fd, int* errno_);
+  ssize_t write_fd(int fd, int* errno_);
 
  private:
   std::vector<char> buffer_;

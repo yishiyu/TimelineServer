@@ -78,7 +78,7 @@ void Buffer::write_buffer(Buffer& buff) {
 
 // 文件接口
 
-ssize_t Buffer::read_fd(int fd, int* Errno) {
+ssize_t Buffer::read_fd(int fd, int* errno_) {
   char buff[65535];
   struct iovec iov[2];
   const size_t writable = buffer_.size() - write_pos_;
@@ -94,7 +94,7 @@ ssize_t Buffer::read_fd(int fd, int* Errno) {
   const ssize_t len = readv(fd, iov, 2);
 
   if (len < 0) {
-    *Errno = errno;
+    *errno_ = errno;
     return len;
   } else if (static_cast<size_t>(len) <= writable) {
     // buffer 大小足够,没有写入申请的 buff 中
@@ -108,12 +108,12 @@ ssize_t Buffer::read_fd(int fd, int* Errno) {
   return len;
 }
 
-ssize_t Buffer::write_fd(int fd, int* Errno) {
+ssize_t Buffer::write_fd(int fd, int* errno_) {
   size_t read_size = get_readable_bytes();
   ssize_t len = write(fd, get_read_ptr(), read_size);
 
   if (len < 0) {
-    *Errno = errno;
+    *errno_ = errno;
     return len;
   }
 
