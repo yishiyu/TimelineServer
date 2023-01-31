@@ -52,7 +52,7 @@ const Json HttpRequest::query_post(const char* key) const {
 }
 
 bool HttpRequest::parse(Buffer& buffer) {
-  const char CRLF[] = "\n";
+  const char CRLF[] = "\r\n";
   if (buffer.get_readable_bytes() <= 0) {
     return false;
   }
@@ -63,7 +63,7 @@ bool HttpRequest::parse(Buffer& buffer) {
     if (state_ != PARSE_STATE::BODY) {
       // 解析到下一个换行符
       const char* line_end = std::search(
-          buffer.get_read_ptr(), buffer.get_write_ptr(), CRLF, CRLF + 1);
+          buffer.get_read_ptr(), buffer.get_write_ptr(), CRLF, CRLF + 2);
       line = string(const_cast<const char*>(buffer.get_read_ptr()), line_end);
     } else {
       // 解析剩下所有内容
@@ -99,7 +99,7 @@ bool HttpRequest::parse(Buffer& buffer) {
     }
     if (state_ != PARSE_STATE::BODY) {
       // +1是额外的换行符
-      buffer.move_read_ptr(line.size() + 1);
+      buffer.move_read_ptr(line.size() + 2);
     }
   }
 
