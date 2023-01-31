@@ -97,7 +97,7 @@ void HttpResponse::make_response(Buffer& buffer) {
   add_content_(buffer);
 }
 
-char* HttpResponse::file() { return mm_file_; }
+char* HttpResponse::get_file() { return mm_file_; }
 
 void HttpResponse::unmap_file() {
   if (mm_file_) {

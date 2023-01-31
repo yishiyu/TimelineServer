@@ -36,7 +36,7 @@ TEST_F(HttpResponseTest, success) {
   response.make_response(buff);
 
   cout << buff.read_all() << endl;
-  cout << response.file() << endl;
+  cout << response.get_file() << endl;
 }
 
 TEST_F(HttpResponseTest, failure) {
@@ -48,7 +48,7 @@ TEST_F(HttpResponseTest, failure) {
   response.make_response(buff);
 
   cout << buff.read_all() << endl;
-  cout << response.file() << endl;
+  cout << response.get_file() << endl;
 }
 
 }  // namespace TimelineServer

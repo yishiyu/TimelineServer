@@ -24,7 +24,7 @@ class HttpResponse {
   void make_response(Buffer& buffer);
 
   // 获取映射到内存的文件/回收内存文件
-  char* file();
+  char* get_file();
   void unmap_file();
 
   size_t get_file_size() const { return mm_file_stat_.st_size; };
