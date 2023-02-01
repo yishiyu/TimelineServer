@@ -37,7 +37,7 @@ class HttpConn {
   int get_port() const { return sock_addr_.sin_port; }
   sockaddr_in get_addr() const { return sock_addr_; }
   string get_ip() const { return string(inet_ntoa(sock_addr_.sin_addr)); };
-  int get_user_count() const { return user_count_; }
+  static int get_user_count() { return user_count_; }
 
   size_t get_writable_bytes() const {
     return iov_[0].iov_len + iov_[1].iov_len;
