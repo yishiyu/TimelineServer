@@ -2,10 +2,10 @@
 
 namespace TimelineServer {
 Server::Server(int port, bool is_ET, int timeout_ms, bool linger_close,
-               string& sql_host, int sql_port, const string& sql_user,
-               const string& sql_pwd, const string& sql_db_name,
-               int pool_sql_conn_num, int pool_thread_num, LOG_LEVEL log_level,
-               int log_queue_size)
+               string& src_dir, string& sql_host, int sql_port,
+               const string& sql_user, const string& sql_pwd,
+               const string& sql_db_name, int pool_sql_conn_num,
+               int pool_thread_num, LOG_LEVEL log_level, int log_queue_size)
     : port_(port),
       linger_close_(linger_close),
       timeout_ms_(timeout_ms),
@@ -14,10 +14,10 @@ Server::Server(int port, bool is_ET, int timeout_ms, bool linger_close,
       thread_pool_(new ThreadPool(pool_thread_num)),
       mux_(new Mux()) {
   // 获取工作目录
-  char src_dir[256] = {0};
-  getcwd(src_dir, 256);
-  src_dir_ = string(src_dir) + "/resources/";
-  string log_dir = string(src_dir) + "/log/";
+  // char src_dir[256] = {0};
+  // getcwd(src_dir, 256);
+  src_dir_ = src_dir + "data/resources/";
+  string log_dir = src_dir + "data/log/";
 
   Log::get_instance()->init(log_level, log_dir.data(), ".log", log_queue_size);
 
