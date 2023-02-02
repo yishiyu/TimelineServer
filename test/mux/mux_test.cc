@@ -49,8 +49,8 @@ TEST_F(MuxTest, all) {
   int events_count = mux.wait(timeout);
 
   EXPECT_TRUE(events_count > 0);
-  EXPECT_TRUE(mux.get_signal_fd(0) == pipe_fds[1]);
-  EXPECT_TRUE(mux.get_signal_events(0) & EPOLLOUT);
+  EXPECT_TRUE(mux.get_active_fd(0) == pipe_fds[1]);
+  EXPECT_TRUE(mux.get_active_events(0) & EPOLLOUT);
 }
 
 }  // namespace TimelineServer

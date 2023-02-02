@@ -20,8 +20,8 @@ class Mux {
 
   // 查询函数/获取信号来源
   int wait(int timeout = -1);
-  int get_signal_fd(size_t i) const;
-  int get_signal_events(size_t i) const;
+  int get_active_fd(size_t i) const;
+  int get_active_events(size_t i) const;
 
  private:
   int mux_fd_;

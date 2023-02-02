@@ -4,8 +4,8 @@ namespace TimelineServer {
 Server::Server(int port, bool is_ET, int timeout_ms, bool linger_close,
                string& sql_host, int sql_port, const string& sql_user,
                const string& sql_pwd, const string& sql_db_name,
-               int pool_sql_conn_num, int pool_thread_num, bool log_enable,
-               LOG_LEVEL log_level, int log_queue_size)
+               int pool_sql_conn_num, int pool_thread_num, LOG_LEVEL log_level,
+               int log_queue_size)
     : port_(port),
       linger_close_(linger_close),
       timeout_ms_(timeout_ms),
@@ -19,9 +19,11 @@ Server::Server(int port, bool is_ET, int timeout_ms, bool linger_close,
   src_dir_ = string(src_dir) + "/resources/";
   string log_dir = string(src_dir) + "/log/";
 
+  Log::get_instance()->init(log_level, log_dir.data(), ".log", log_queue_size);
+
   // 初始化数据库
   SQLConnPool::get_instance()->init(sql_host.data(), sql_port, sql_user.data(),
-                                    sql_user.data(), sql_db_name.data(),
+                                    sql_pwd.data(), sql_db_name.data(),
                                     pool_sql_conn_num);
 
   // 初始化服务器
@@ -34,10 +36,7 @@ Server::Server(int port, bool is_ET, int timeout_ms, bool linger_close,
   HttpConn::global_config(true, src_dir_, 0);
 
   // LOG
-  if (log_enable) {
-    Log::get_instance()->init(log_level, log_dir.data(), ".log",
-                              log_queue_size);
-
+  {
     string log_level_stirng;
     switch (log_level) {
       case ELL_DEBUG:
@@ -79,7 +78,40 @@ Server::~Server() {
   SQLConnPool::get_instance()->close();
 }
 
-void Server::start() {}
+void Server::start() {
+  // time to next tick(MS)
+  int ttnt_ms = -1;
+  if (!is_close_) {
+    LOG_INFO("========== Server start ==========");
+  }
+  while (!is_close_) {
+    if (timeout_ms_ > 0) {
+      // get_next_timeout 函数内会执行 tick
+      ttnt_ms = timer_->get_next_timeout();
+    }
+    int events_count_ = mux_->wait(ttnt_ms);
+    for (size_t i = 0; i < events_count_; i++) {
+      int fd = mux_->get_active_fd(i);
+      uint32_t event = mux_->get_active_events(i);
+      if (fd == listen_fd_) {
+        // 有新连接
+        deal_new_conn_();
+      } else if (event & (EPOLLRDHUP | EPOLLHUP | EPOLLERR)) {
+        // 连接断开
+        assert(connections_.count(fd) > 0);
+        deal_close_conn_(connections_[fd]);
+      } else if (event & EPOLLIN) {
+        // 收到数据
+        deal_read_conn_(connections_[fd]);
+      } else if (event & EPOLLOUT) {
+        // 发送数据
+        deal_write_conn_(connections_[fd]);
+      } else {
+        LOG_WARN("Unexpected event: %d!", event);
+      }
+    }
+  }
+}
 
 void Server::init_event_mode_(bool is_ET) {
   // 边缘触发监听(监听连接到来,额外监听读取关闭)
@@ -203,7 +235,7 @@ void Server::deal_new_conn_() {
   if (timeout_ms_ > 0) {
     timer_->add_timer(
         fd, timeout_ms_,
-        std::bind(&Server::deal_close_conn_, this, connections_[fd]));
+        std::bind(&Server::deal_close_conn_, this, std::ref(connections_[fd])));
   }
 
   set_fd_noblock(fd);
@@ -220,13 +252,13 @@ void Server::deal_close_conn_(HttpConn& client) {
 void Server::deal_read_conn_(HttpConn& client) {
   // 交给线程池异步处理
   extent_time_(client);
-  thread_pool_->add_task(std::bind(&Server::on_read_, this, client));
+  thread_pool_->add_task(std::bind(&Server::on_read_, this, std::ref(client)));
 }
 
 void Server::deal_write_conn_(HttpConn& client) {
   // 交给线程池异步处理
   extent_time_(client);
-  thread_pool_->add_task(std::bind(&Server::on_write_, this, client));
+  thread_pool_->add_task(std::bind(&Server::on_write_, this, std::ref(client)));
 }
 
 void Server::send_error_(int fd, const string& message) {

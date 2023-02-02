@@ -15,7 +15,7 @@ class Server {
   Server(int port, bool is_ET, int timeout_ms, bool linger_close,
          string& sql_host, int sql_port, const string& sql_user,
          const string& sql_pwd, const string& sql_db_name,
-         int pool_sql_conn_num, int pool_thread_num, bool log_enable,
+         int pool_sql_conn_num, int pool_thread_num,
          LOG_LEVEL log_level, int log_queue_size);
 
   ~Server();

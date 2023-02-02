@@ -48,12 +48,12 @@ int Mux::wait(int timeout) {
   return events_count_;
 }
 
-int Mux::get_signal_fd(size_t i) const {
+int Mux::get_active_fd(size_t i) const {
   assert(i < events_count_ && i < events_.size() && i >= 0);
   return events_[i].data.fd;
 }
 
-int Mux::get_signal_events(size_t i) const {
+int Mux::get_active_events(size_t i) const {
   assert(i < events_count_ && i < events_.size() && i >= 0);
   return events_[i].events;
 }
