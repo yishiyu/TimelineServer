@@ -63,9 +63,9 @@ Server::Server(int port, bool is_ET, int timeout_ms, bool linger_close,
       LOG_INFO("========== Server init ==========");
       LOG_INFO("Port:%d \tLinger close: %s", port_,
                linger_close_ ? "true" : "false");
-      LOG_INFO("Triger mode: %s", (is_ET_ & EPOLLET ? "ET" : "LT"));
-      LOG_INFO("Log level: %s", log_level_stirng);
-      LOG_INFO("Src dir: %s", src_dir_);
+      LOG_INFO("Triger mode: %s", (is_ET_? "ET" : "LT"));
+      LOG_INFO("Log level: %s", log_level_stirng.data());
+      LOG_INFO("Src dir: %s", src_dir_.data());
       LOG_INFO("SQL connection pool size: %d, Thread pool size: %d",
                pool_sql_conn_num, pool_thread_num);
     }
@@ -90,7 +90,7 @@ void Server::start() {
       ttnt_ms = timer_->get_next_timeout();
     }
     int events_count_ = mux_->wait(ttnt_ms);
-    for (size_t i = 0; i < events_count_; i++) {
+    for (int i = 0; i < events_count_; i++) {
       int fd = mux_->get_active_fd(i);
       uint32_t event = mux_->get_active_events(i);
       if (fd == listen_fd_) {

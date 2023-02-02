@@ -57,12 +57,19 @@ ssize_t HttpConn::read(int* errno_) {
     // 不检测是否读完消息体,再解析报文,可(ken)能(ding)有一些bug
     // 必须保证 HTTP 报文在读取的时候全部到达(但无法保证)
     len = read_buff_.read_fd(sock_fd_, errno_);
-    if (len <= 0) {
-      break;
+    // 不能指望在没有内容读的时候 len=0
+    // 其实这个时候 len = readv() = -1, errno = EAGAIN
+    // 应该判断 read_buff_.get_readable_bytes() 中是否读到内容
+    if (len < 0) {
+      if (read_buff_.get_readable_bytes() == 0) {
+        // 没有读到东西
+        return -1;
+      } else {
+        // 成功读到内容且无新内容可读了已经
+        return 0;
+      }
     }
   } while (true);
-
-  return len;
 }
 
 ssize_t HttpConn::write(int* errno_) {

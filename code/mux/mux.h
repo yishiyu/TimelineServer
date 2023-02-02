@@ -20,14 +20,14 @@ class Mux {
 
   // 查询函数/获取信号来源
   int wait(int timeout = -1);
-  int get_active_fd(size_t i) const;
-  int get_active_events(size_t i) const;
+  int get_active_fd(int i) const;
+  int get_active_events(int i) const;
 
  private:
   int mux_fd_;
 
   // 当前触发事件的信号源数量
-  size_t events_count_;
+  int events_count_;
   std::vector<struct epoll_event> events_;
 };
 

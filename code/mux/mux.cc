@@ -48,13 +48,15 @@ int Mux::wait(int timeout) {
   return events_count_;
 }
 
-int Mux::get_active_fd(size_t i) const {
-  assert(i < events_count_ && i < events_.size() && i >= 0);
+int Mux::get_active_fd(int i) const {
+  // epoll_wait 本身是有可能返回 -1 的,不能 assert(i < events_count_)
+  assert(i < events_.size() && i >= 0);
   return events_[i].data.fd;
 }
 
-int Mux::get_active_events(size_t i) const {
-  assert(i < events_count_ && i < events_.size() && i >= 0);
+int Mux::get_active_events(int i) const {
+  // epoll_wait 本身是有可能返回 -1 的,不能 assert(i < events_count_)
+  assert(i < events_.size() && i >= 0);
   return events_[i].events;
 }
 
