@@ -1,5 +1,9 @@
 #pragma once
 
+#include <signal.h>
+#include <sys/signalfd.h>
+#include <unistd.h>
+
 #include <unordered_map>
 
 #include "http/http_conn.h"
@@ -26,6 +30,7 @@ class Server {
   // 初始化函数
   void init_event_mode_(bool is_ET);
   bool init_socket_();
+  bool init_quit_signal_();
 
   // 处理事件函数
   void deal_new_conn_();
@@ -50,6 +55,7 @@ class Server {
   int timeout_ms_;
   bool is_close_;
   int listen_fd_;
+  int signal_fd_;
   bool is_ET_;
 
   uint32_t listen_events_;

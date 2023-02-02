@@ -1,6 +1,10 @@
 #include "server.h"
 
 namespace TimelineServer {
+
+std::function<void(int)> shutdown_handler;
+void signal_handler(int signal) { shutdown_handler(signal); }
+
 Server::Server(int port, bool is_ET, int timeout_ms, bool linger_close,
                string& src_dir, string& sql_host, int sql_port,
                const string& sql_user, const string& sql_pwd,
@@ -29,6 +33,9 @@ Server::Server(int port, bool is_ET, int timeout_ms, bool linger_close,
   // 初始化服务器
   init_event_mode_(is_ET);
   if (!init_socket_()) {
+    is_close_ = true;
+  }
+  if (!init_quit_signal_()) {
     is_close_ = true;
   }
 
@@ -63,7 +70,7 @@ Server::Server(int port, bool is_ET, int timeout_ms, bool linger_close,
       LOG_INFO("========== Server init ==========");
       LOG_INFO("Port:%d \tLinger close: %s", port_,
                linger_close_ ? "true" : "false");
-      LOG_INFO("Triger mode: %s", (is_ET_? "ET" : "LT"));
+      LOG_INFO("Triger mode: %s", (is_ET_ ? "ET" : "LT"));
       LOG_INFO("Log level: %s", log_level_stirng.data());
       LOG_INFO("Src dir: %s", src_dir_.data());
       LOG_INFO("SQL connection pool size: %d, Thread pool size: %d",
@@ -76,6 +83,8 @@ Server::~Server() {
   close(listen_fd_);
   is_close_ = true;
   SQLConnPool::get_instance()->close();
+  LOG_INFO("========== Server stop ==========");
+  LOG_INFO("Bye~")
 }
 
 void Server::start() {
@@ -214,6 +223,16 @@ bool Server::init_socket_() {
   return true;
 }
 
+bool Server::init_quit_signal_() {
+  // https://stackoverflow.com/questions/11468414/using-auto-and-lambda-to-handle-signal
+  // 直接使用 lambda 函数会报类型转换错误
+  // 可以用functional包装一下
+  signal(SIGINT, signal_handler);
+  shutdown_handler = [this](int sig) { this->is_close_ = true; };
+
+  return true;
+}
+
 void Server::deal_new_conn_() {
   struct sockaddr_in addr;
   socklen_t len = sizeof(addr);
@@ -244,7 +263,6 @@ void Server::deal_new_conn_() {
 }
 
 void Server::deal_close_conn_(HttpConn& client) {
-
   LOG_INFO("Client[%d] quit!", client.get_fd());
   mux_->del_fd(client.get_fd());
   client.close_conn();
