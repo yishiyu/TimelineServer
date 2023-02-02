@@ -121,6 +121,7 @@ void Log::write_buffer(LOG_LEVEL level, const char* format, ...) {
       log_queue_->push(buffer_.read_all());
     } else {
       fputs(buffer_.get_read_ptr(), fp_);
+      flush();
     }
     buffer_.clear();
   }
@@ -170,6 +171,7 @@ void Log::async_write() {
   while (log_queue_->pop(log_message)) {
     std::lock_guard<std::mutex> locker(fp_mtx_);
     fputs(log_message.data(), fp_);
+    flush();
   }
 }
 

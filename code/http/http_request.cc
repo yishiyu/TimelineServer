@@ -88,8 +88,8 @@ bool HttpRequest::parse(Buffer& buffer) {
         break;
 
       case PARSE_STATE::BODY:
-        if (!parse_body_(line)) {
-          state_ = PARSE_STATE::ERROR;
+        if (method_ == "POST") {
+          parse_body_(line);
         }
         state_ = PARSE_STATE::FINISH;
         break;
@@ -140,11 +140,6 @@ bool HttpRequest::parse_header_(const string& line) {
 }
 
 bool HttpRequest::parse_body_(const string& line) {
-  if (method_ != "POST") {
-    LOG_ERROR("Method error,expect POST but get %s", method_.data());
-    return false;
-  }
-
   if (header_["Content-Type"] == "application/json") {
     // 只解析json格式请求
     string error;

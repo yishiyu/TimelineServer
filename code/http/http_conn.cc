@@ -77,15 +77,19 @@ ssize_t HttpConn::write(int* errno_) {
 
   do {
     len = writev(sock_fd_, iov_, iov_count_);
+    // 和 read 一样,不能指望在没东西可写的时候 len=0
+    // 应该根据 get_writable_bytes() 判断是否成功
     if (len <= 0) {
-      *errno_ = errno;
-      break;
+      if (get_writable_bytes() == 0) {
+        // 传输完成
+        return 0;
+      } else {
+        *errno_ = errno;
+        return -1;
+      }
     }
 
-    if (get_writable_bytes() == 0) {
-      // 传输完成
-      break;
-    } else if (static_cast<size_t>(len) > iov_[0].iov_len) {
+    if (static_cast<size_t>(len) > iov_[0].iov_len) {
       // 响应头传输完成
       iov_[1].iov_base = (uint8_t*)iov_[1].iov_base + (len - iov_[0].iov_len);
       iov_[1].iov_len -= (len - iov_[0].iov_len);
@@ -100,8 +104,6 @@ ssize_t HttpConn::write(int* errno_) {
     }
 
   } while (true);
-
-  return len;
 }
 
 bool HttpConn::process() {
@@ -133,7 +135,7 @@ bool HttpConn::process() {
     iov_count_ = 2;
   }
 
-  LOG_DEBUG("filesize:%d, %d  to %d", response_.get_file_size(), iov_count_,
+  LOG_DEBUG("filesize:%d, response size:%d", response_.get_file_size(),
             get_writable_bytes());
   return true;
 }

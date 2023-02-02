@@ -244,7 +244,8 @@ void Server::deal_new_conn_() {
 }
 
 void Server::deal_close_conn_(HttpConn& client) {
-  LOG_INFO("Client[%d quit!", client.get_fd());
+
+  LOG_INFO("Client[%d] quit!", client.get_fd());
   mux_->del_fd(client.get_fd());
   client.close_conn();
 }
@@ -316,8 +317,8 @@ void Server::on_read_(HttpConn& client) {
 void Server::on_write_(HttpConn& client) {
   int errno_;
   int ret = client.write(&errno_);
-  if (ret <= 0) {
-    // 最后一般是 ret > 0
+  if (ret < 0) {
+    // 最后一般是 ret = 0
     if (errno_ == EAGAIN) {
       // 暂时不可写,等待机会再写
       mux_->mod_fd(client.get_fd(), conn_events_ | EPOLLOUT);
