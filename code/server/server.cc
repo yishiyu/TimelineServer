@@ -6,9 +6,9 @@ std::function<void(int)> shutdown_handler;
 void signal_handler(int signal) { shutdown_handler(signal); }
 
 Server::Server(int port, bool is_ET, int timeout_ms, bool linger_close,
-               string& src_dir, string& sql_host, int sql_port,
-               const string& sql_user, const string& sql_pwd,
-               const string& sql_db_name, int pool_sql_conn_num,
+               const char* src_dir, const char* sql_host, int sql_port,
+               const char* sql_user, const char* sql_pwd,
+               const char* sql_db_name, int pool_sql_conn_num,
                int pool_thread_num, LOG_LEVEL log_level, int log_queue_size)
     : port_(port),
       linger_close_(linger_close),
@@ -20,15 +20,14 @@ Server::Server(int port, bool is_ET, int timeout_ms, bool linger_close,
   // 获取工作目录
   // char src_dir[256] = {0};
   // getcwd(src_dir, 256);
-  src_dir_ = src_dir + "data/resources";
-  string log_dir = src_dir + "data/log/";
+  src_dir_ = string(src_dir) + "data/resources";
+  string log_dir = string(src_dir) + "data/log/";
 
   Log::get_instance()->init(log_level, log_dir.data(), ".log", log_queue_size);
 
   // 初始化数据库
-  SQLConnPool::get_instance()->init(sql_host.data(), sql_port, sql_user.data(),
-                                    sql_pwd.data(), sql_db_name.data(),
-                                    pool_sql_conn_num);
+  SQLConnPool::get_instance()->init(sql_host, sql_port, sql_user, sql_pwd,
+                                    sql_db_name, pool_sql_conn_num);
 
   // 初始化服务器
   init_event_mode_(is_ET);
@@ -71,7 +70,7 @@ Server::Server(int port, bool is_ET, int timeout_ms, bool linger_close,
       LOG_INFO("Port:%d \tLinger close: %s", port_,
                linger_close_ ? "true" : "false");
       LOG_INFO("Triger mode: %s", (is_ET_ ? "ET" : "LT"));
-      LOG_INFO("Log level: %s", log_level_stirng.data());
+      LOG_INFO("Log level: %s", log_level_stirng);
       LOG_INFO("Src dir: %s", src_dir_.data());
       LOG_INFO("SQL connection pool size: %d, Thread pool size: %d",
                pool_sql_conn_num, pool_thread_num);
@@ -126,8 +125,33 @@ bool Server::register_static_router(string& src, string& des) {
   return HttpResponse::register_static_router(src, des);
 }
 
-bool Server::register_dynamic_router(string& src,const router_cb& cb) {
+bool Server::register_static_router(const char* src, string& des) {
+  assert(src != nullptr);
+  string src_(src);
+  return HttpResponse::register_static_router(src_, des);
+}
+
+bool Server::register_static_router(string& src, const char* des) {
+  assert(des != nullptr);
+  string des_(des);
+  return HttpResponse::register_static_router(src, des_);
+}
+
+bool Server::register_static_router(const char* src, const char* des) {
+  assert(src != nullptr && des != nullptr);
+  string src_(src);
+  string des_(des);
+  return HttpResponse::register_static_router(src_, des_);
+}
+
+bool Server::register_dynamic_router(string& src, const router_cb& cb) {
   return HttpResponse::register_dynamic_router(src, cb);
+}
+
+bool Server::register_dynamic_router(const char* src, const router_cb& cb) {
+  assert(src != nullptr);
+  string src_(src);
+  return HttpResponse::register_dynamic_router(src_, cb);
 }
 
 void Server::init_event_mode_(bool is_ET) {

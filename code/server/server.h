@@ -17,17 +17,21 @@ namespace TimelineServer {
 class Server {
  public:
   Server(int port, bool is_ET, int timeout_ms, bool linger_close,
-         string& src_dir, string& sql_host, int sql_port,
-         const string& sql_user, const string& sql_pwd,
-         const string& sql_db_name, int pool_sql_conn_num, int pool_thread_num,
-         LOG_LEVEL log_level, int log_queue_size);
+         const char* src_dir, const char* sql_host, int sql_port,
+         const char* sql_user, const char* sql_pwd, const char* sql_db_name,
+         int pool_sql_conn_num, int pool_thread_num, LOG_LEVEL log_level,
+         int log_queue_size);
 
   ~Server();
 
   void start();
 
   static bool register_static_router(string& src, string& des);
-  static bool register_dynamic_router(string& src,const router_cb& cb);
+  static bool register_static_router(const char* src, string& des);
+  static bool register_static_router(string& src, const char* des);
+  static bool register_static_router(const char* src, const char* des);
+  static bool register_dynamic_router(string& src, const router_cb& cb);
+  static bool register_dynamic_router(const char* src, const router_cb& cb);
 
  private:
   // 初始化函数
