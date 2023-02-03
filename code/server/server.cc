@@ -70,7 +70,7 @@ Server::Server(int port, bool is_ET, int timeout_ms, bool linger_close,
       LOG_INFO("Port:%d \tLinger close: %s", port_,
                linger_close_ ? "true" : "false");
       LOG_INFO("Triger mode: %s", (is_ET_ ? "ET" : "LT"));
-      LOG_INFO("Log level: %s", log_level_stirng);
+      LOG_INFO("Log level: %s", log_level_stirng.data());
       LOG_INFO("Src dir: %s", src_dir_.data());
       LOG_INFO("SQL connection pool size: %d, Thread pool size: %d",
                pool_sql_conn_num, pool_thread_num);

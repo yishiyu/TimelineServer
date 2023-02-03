@@ -210,7 +210,7 @@ void HttpResponse::add_error_content(Buffer& buff, std::string message) {
   }
   body += std::to_string(code_) + " : " + status + "\n";
   body += "<p>" + message + "</p>";
-  body += "<hr><em>TinyWebServer</em></body></html>";
+  body += "<hr><em>TimelineServer</em></body></html>";
 
   buff.write_buffer("Content-length: " + std::to_string(body.size()) +
                     "\r\n\r\n");
