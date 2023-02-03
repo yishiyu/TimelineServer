@@ -2,11 +2,6 @@
 
 namespace TimelineServer {
 
-const std::unordered_set<string> HttpRequest::ROUTER = {
-    "/index",
-    "/welcome",
-};
-
 void HttpRequest::init() {
   state_ = PARSE_STATE::REQUEST_LINE;
   method_ = "";
@@ -76,8 +71,6 @@ bool HttpRequest::parse(Buffer& buffer) {
           state_ = PARSE_STATE::ERROR;
           return false;
         }
-        // 成功解析后解析请求文件路径
-        path_complete_();
         state_ = PARSE_STATE::HEADERS;
         break;
 
@@ -153,21 +146,6 @@ bool HttpRequest::parse_body_(const string& line) {
   }
 
   return true;
-}
-
-void HttpRequest::path_complete_() {
-  // 为默认路径添加html后缀
-  // 如 index, login
-  if (path_ == "/") {
-    path_ = "/index.html";
-  } else {
-    for (auto& item : ROUTER) {
-      if (item == path_) {
-        path_ += ".html";
-        break;
-      }
-    }
-  }
 }
 
 }  // namespace TimelineServer

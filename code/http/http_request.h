@@ -72,8 +72,6 @@ class HttpRequest {
 
   std::unordered_map<string, string> header_;
   Json post_;
-
-  static const std::unordered_set<string> ROUTER;
 };
 
 }  // namespace TimelineServer
