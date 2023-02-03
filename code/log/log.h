@@ -64,30 +64,33 @@ class Log {
   std::unique_ptr<std::thread> write_thread_;
 };
 
-// 使用 while(0) 把宏包起来,可以使其不受括号,分号等的影响
-#define LOG_BASE(level, format, ...)                   \
-  do {                                                 \
-    Log* log = Log::get_instance();                    \
-    if (log->get_level() <= level) {                   \
-      log->write_buffer(level, format, ##__VA_ARGS__); \
-    }                                                  \
-  } while (0);
-
-#define LOG_DEBUG(format, ...)                             \
-  do {                                                     \
-    LOG_BASE(LOG_LEVEL::ELL_DEBUG, format, ##__VA_ARGS__); \
-  } while (0);
-#define LOG_INFO(format, ...)                             \
-  do {                                                    \
-    LOG_BASE(LOG_LEVEL::ELL_INFO, format, ##__VA_ARGS__); \
-  } while (0);
-#define LOG_WARN(format, ...)                             \
-  do {                                                    \
-    LOG_BASE(LOG_LEVEL::ELL_WARN, format, ##__VA_ARGS__); \
-  } while (0);
-#define LOG_ERROR(format, ...)                             \
-  do {                                                     \
-    LOG_BASE(LOG_LEVEL::ELL_ERROR, format, ##__VA_ARGS__); \
-  } while (0);
-
 }  // namespace TimelineServer
+
+// 使用 while(0) 把宏包起来,可以使其不受括号,分号等的影响
+#define LOG_BASE(level, format, ...)                                \
+  do {                                                              \
+    TimelineServer::Log* log = TimelineServer::Log::get_instance(); \
+    if (log->get_level() <= level) {                                \
+      log->write_buffer(level, format, ##__VA_ARGS__);              \
+    }                                                               \
+  } while (0);
+
+#define LOG_DEBUG(format, ...)                                             \
+  do {                                                                     \
+    LOG_BASE(TimelineServer::LOG_LEVEL::ELL_DEBUG, format, ##__VA_ARGS__); \
+  } while (0);
+
+#define LOG_INFO(format, ...)                                             \
+  do {                                                                    \
+    LOG_BASE(TimelineServer::LOG_LEVEL::ELL_INFO, format, ##__VA_ARGS__); \
+  } while (0);
+
+#define LOG_WARN(format, ...)                                             \
+  do {                                                                    \
+    LOG_BASE(TimelineServer::LOG_LEVEL::ELL_WARN, format, ##__VA_ARGS__); \
+  } while (0);
+
+#define LOG_ERROR(format, ...)                                             \
+  do {                                                                     \
+    LOG_BASE(TimelineServer::LOG_LEVEL::ELL_ERROR, format, ##__VA_ARGS__); \
+  } while (0);
