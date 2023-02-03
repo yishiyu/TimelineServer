@@ -34,6 +34,9 @@ class HttpResponse {
   size_t get_file_size() const { return mm_file_stat_.st_size; };
   int get_code() const { return code_; };
 
+  static bool register_static_router(string& src, string& des);
+  static bool register_dynamic_router(string& src, const router_cb& cb);
+
  private:
   // 填充响应消息
   void add_state_line_(Buffer& buff);
@@ -47,6 +50,9 @@ class HttpResponse {
 
   // 获取请求文件类型(根据文件后缀)
   string get_file_type_();
+
+  // 动态响应 Buffer
+  Buffer dynamic_buffer_;
 
   // 状态码等
   int code_;

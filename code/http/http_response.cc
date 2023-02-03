@@ -3,9 +3,8 @@
 namespace TimelineServer {
 
 unordered_map<string, router_cb> HttpResponse::dynamic_router_;
-unordered_map<string, string> HttpResponse::static_router_={
-  {"/","/index.html"}
-};
+unordered_map<string, string> HttpResponse::static_router_ = {
+    {"/", "/index.html"}};
 
 // 预设文件类型
 const unordered_map<string, string> HttpResponse::SUFFIX_TYPE = {
@@ -71,6 +70,7 @@ void HttpResponse::init(const std::string& src_dir,
   file_path_ = file_path;
   is_keep_alive_ = is_keep_alive;
   code_ = code;
+  dynamic_buffer_.clear();
 }
 
 void HttpResponse::make_response(Buffer& buffer) {
@@ -84,7 +84,11 @@ void HttpResponse::make_response(Buffer& buffer) {
     add_header_(buffer);
 
     // 调用注册的动态回调函数
-    dynamic_router_[file_path_](buffer);
+    dynamic_router_[file_path_](dynamic_buffer_);
+    buffer.write_buffer("Content-length: " +
+                        std::to_string(dynamic_buffer_.get_readable_bytes()) +
+                        "\r\n\r\n");
+    buffer.write_buffer(dynamic_buffer_);
   } else {
     // 2. 静态路由
     if (static_router_.count(file_path_) > 0) {
@@ -129,6 +133,16 @@ void HttpResponse::unmap_file() {
     mm_file_ = nullptr;
     mm_file_stat_ = {0};
   }
+}
+
+bool HttpResponse::register_static_router(string& src, string& des) {
+  static_router_[src] = des;
+  return true;
+}
+
+bool HttpResponse::register_dynamic_router(string& src, const router_cb& cb) {
+  dynamic_router_[src] = cb;
+  return true;
 }
 
 void HttpResponse::add_state_line_(Buffer& buff) {

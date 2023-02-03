@@ -26,6 +26,9 @@ class Server {
 
   void start();
 
+  static bool register_static_router(string& src, string& des);
+  static bool register_dynamic_router(string& src,const router_cb& cb);
+
  private:
   // 初始化函数
   void init_event_mode_(bool is_ET);

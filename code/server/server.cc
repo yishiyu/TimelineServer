@@ -20,7 +20,7 @@ Server::Server(int port, bool is_ET, int timeout_ms, bool linger_close,
   // 获取工作目录
   // char src_dir[256] = {0};
   // getcwd(src_dir, 256);
-  src_dir_ = src_dir + "data/resources/";
+  src_dir_ = src_dir + "data/resources";
   string log_dir = src_dir + "data/log/";
 
   Log::get_instance()->init(log_level, log_dir.data(), ".log", log_queue_size);
@@ -120,6 +120,14 @@ void Server::start() {
       }
     }
   }
+}
+
+bool Server::register_static_router(string& src, string& des) {
+  return HttpResponse::register_static_router(src, des);
+}
+
+bool Server::register_dynamic_router(string& src,const router_cb& cb) {
+  return HttpResponse::register_dynamic_router(src, cb);
 }
 
 void Server::init_event_mode_(bool is_ET) {
