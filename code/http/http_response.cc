@@ -31,10 +31,8 @@ const unordered_map<string, string> HttpResponse::SUFFIX_TYPE = {
 
 // 预设状态码
 const unordered_map<int, string> HttpResponse::CODE_STATUS = {
-    {200, "OK"},
-    {400, "Bad Request"},
-    {403, "Forbidden"},
-    {404, "Not Found"},
+    {200, "OK"},        {400, "Bad Request"},           {403, "Forbidden"},
+    {404, "Not Found"}, {500, "Internal Server Error"},
 };
 
 // 预设错误代码页面文件
@@ -77,18 +75,25 @@ void HttpResponse::make_response(const HttpRequest& request, Buffer& buffer) {
   // 处理路由
   if (dynamic_router_.count(file_path_) > 0) {
     // 1. 动态路由
-    // 响应状态码
-    response_to_code_();
-    // 填充内容
-    add_state_line_(buffer);
-    add_header_(buffer);
-
     // 调用注册的动态回调函数
-    dynamic_router_[file_path_](request, dynamic_buffer_);
-    buffer.write_buffer("Content-length: " +
-                        std::to_string(dynamic_buffer_.get_readable_bytes()) +
-                        "\r\n\r\n");
-    buffer.write_buffer(dynamic_buffer_);
+    if (dynamic_router_[file_path_](request, dynamic_buffer_)) {
+      // 响应状态码
+      response_to_code_();
+      // 填充内容
+      add_state_line_(buffer);
+      add_header_(buffer);
+
+      buffer.write_buffer("Content-length: " +
+                          std::to_string(dynamic_buffer_.get_readable_bytes()) +
+                          "\r\n\r\n");
+
+      buffer.write_buffer(dynamic_buffer_);
+      return;
+    } else {
+      // 动态路由出错
+      code_ = 500;
+      LOG_ERROR("dynamic router error: %s", file_path_);
+    }
   } else {
     // 2. 静态路由
     if (static_router_.count(file_path_) > 0) {
@@ -115,14 +120,14 @@ void HttpResponse::make_response(const HttpRequest& request, Buffer& buffer) {
       // 可能初始化的时候传入了其他错误码,不应该覆盖成200
       code_ = 200;
     }
-
-    // 响应状态码
-    response_to_code_();
-    // 填充内容
-    add_state_line_(buffer);
-    add_header_(buffer);
-    add_content_(buffer);
   }
+
+  // 响应状态码
+  response_to_code_();
+  // 填充内容
+  add_state_line_(buffer);
+  add_header_(buffer);
+  add_content_(buffer);
 }
 
 char* HttpResponse::get_file() { return mm_file_; }
