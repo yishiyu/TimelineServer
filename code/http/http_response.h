@@ -3,6 +3,7 @@
 #include <sys/mman.h>
 #include <sys/stat.h>
 
+#include <functional>
 #include <string>
 #include <unordered_map>
 
@@ -12,6 +13,9 @@ using std::string;
 using std::unordered_map;
 
 namespace TimelineServer {
+
+// 动态路由回调函数
+typedef std::function<bool(Buffer& buffer)> router_cb;
 
 class HttpResponse {
  public:
@@ -59,6 +63,10 @@ class HttpResponse {
   static const unordered_map<string, string> SUFFIX_TYPE;
   static const unordered_map<int, string> CODE_STATUS;
   static const unordered_map<int, string> ERROR_CODE_FILE;
+
+  // 动态路由负责需要查询数据库的POST请求, 静态路由负责静态资源文件跳转
+  static unordered_map<string, router_cb> dynamic_router_;
+  static unordered_map<string, string> static_router_;
 };
 
 }  // namespace TimelineServer

@@ -2,6 +2,11 @@
 
 namespace TimelineServer {
 
+unordered_map<string, router_cb> HttpResponse::dynamic_router_;
+unordered_map<string, string> HttpResponse::static_router_={
+  {"/","/index.html"}
+};
+
 // 预设文件类型
 const unordered_map<string, string> HttpResponse::SUFFIX_TYPE = {
     {".html", "text/html"},
@@ -69,32 +74,51 @@ void HttpResponse::init(const std::string& src_dir,
 }
 
 void HttpResponse::make_response(Buffer& buffer) {
-  // 判断响应码
-  LOG_DEBUG("Try to return file \"%s\"", (src_dir_ + file_path_).data());
-  if (stat((src_dir_ + file_path_).data(), &mm_file_stat_) < 0 ||
-      S_ISDIR(mm_file_stat_.st_mode)) {
-    // https://man7.org/linux/man-pages/man2/lstat.2.html
-    // stat 失败时返回 -1
-    // 或者找到的目标是文件夹
-    code_ = 404;
-    LOG_DEBUG("\"%s\" not Found.", (src_dir_ + file_path_).data());
-  } else if (!(mm_file_stat_.st_mode & S_IROTH)) {
-    // IROTH ==> Is Readable for OTHers
-    // Read permission bit for other users. Usually 04.
-    // 不允许读取
-    code_ = 403;
-    LOG_DEBUG("\"%s\" permission denied.", (src_dir_ + file_path_).data());
-  } else if (code_ == -1) {
-    // 可能初始化的时候传入了其他错误码,不应该覆盖成200
-    code_ = 200;
-  }
+  // 处理路由
+  if (dynamic_router_.count(file_path_) > 0) {
+    // 1. 动态路由
+    // 响应状态码
+    response_to_code_();
+    // 填充内容
+    add_state_line_(buffer);
+    add_header_(buffer);
 
-  // 响应状态码
-  response_to_code_();
-  // 填充内容
-  add_state_line_(buffer);
-  add_header_(buffer);
-  add_content_(buffer);
+    // 调用注册的动态回调函数
+    dynamic_router_[file_path_](buffer);
+  } else {
+    // 2. 静态路由
+    if (static_router_.count(file_path_) > 0) {
+      // 需要跳转(如'/'跳转到'index.html')
+      file_path_ = static_router_[file_path_];
+    }
+
+    // 判断响应码
+    LOG_DEBUG("Try to return file \"%s\"", (src_dir_ + file_path_).data());
+    if (stat((src_dir_ + file_path_).data(), &mm_file_stat_) < 0 ||
+        S_ISDIR(mm_file_stat_.st_mode)) {
+      // https://man7.org/linux/man-pages/man2/lstat.2.html
+      // stat 失败时返回 -1
+      // 或者找到的目标是文件夹
+      code_ = 404;
+      LOG_DEBUG("\"%s\" not Found.", (src_dir_ + file_path_).data());
+    } else if (!(mm_file_stat_.st_mode & S_IROTH)) {
+      // IROTH ==> Is Readable for OTHers
+      // Read permission bit for other users. Usually 04.
+      // 不允许读取
+      code_ = 403;
+      LOG_DEBUG("\"%s\" permission denied.", (src_dir_ + file_path_).data());
+    } else if (code_ == -1) {
+      // 可能初始化的时候传入了其他错误码,不应该覆盖成200
+      code_ = 200;
+    }
+
+    // 响应状态码
+    response_to_code_();
+    // 填充内容
+    add_state_line_(buffer);
+    add_header_(buffer);
+    add_content_(buffer);
+  }
 }
 
 char* HttpResponse::get_file() { return mm_file_; }
@@ -117,7 +141,8 @@ void HttpResponse::add_state_line_(Buffer& buff) {
     status = CODE_STATUS.find(code_)->second;
   }
 
-  buff.write_buffer("HTTP/1.1 " + std::to_string(code_) + " " + status + "\r\n");
+  buff.write_buffer("HTTP/1.1 " + std::to_string(code_) + " " + status +
+                    "\r\n");
 }
 
 void HttpResponse::add_header_(Buffer& buff) {
