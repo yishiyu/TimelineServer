@@ -8,6 +8,7 @@
 #include <unordered_map>
 
 #include "buffer/buffer.h"
+#include "http_request.h"
 #include "log/log.h"
 using std::string;
 using std::unordered_map;
@@ -15,7 +16,7 @@ using std::unordered_map;
 namespace TimelineServer {
 
 // 动态路由回调函数
-typedef std::function<bool(Buffer& buffer)> router_cb;
+typedef std::function<bool(const HttpRequest& request, Buffer& buffer)> router_cb;
 
 class HttpResponse {
  public:
@@ -25,7 +26,7 @@ class HttpResponse {
   void init(const std::string& src_dir, const std::string& file_path,
             bool is_keep_alive = false, int code = -1);
 
-  void make_response(Buffer& buffer);
+  void make_response(const HttpRequest& request, Buffer& buffer);
 
   // 获取映射到内存的文件/回收内存文件
   char* get_file();

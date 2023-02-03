@@ -16,8 +16,11 @@ using std::string;
 
 namespace TimelineServer {
 
-bool test_router(Buffer &buff) {
-  buff.write_buffer("{\"result\":\"success\"}");
+bool test_router(const HttpRequest& request, Buffer& buff) {
+  string user_agent = request.query_header("User-Agent");
+  buff.write_buffer("{\"result\": \"success\",\"User-Agent\": \"" + user_agent +
+                    "\"}");
+
   return true;
 }
 

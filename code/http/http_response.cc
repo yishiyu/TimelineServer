@@ -73,7 +73,7 @@ void HttpResponse::init(const std::string& src_dir,
   dynamic_buffer_.clear();
 }
 
-void HttpResponse::make_response(Buffer& buffer) {
+void HttpResponse::make_response(const HttpRequest& request, Buffer& buffer) {
   // 处理路由
   if (dynamic_router_.count(file_path_) > 0) {
     // 1. 动态路由
@@ -84,7 +84,7 @@ void HttpResponse::make_response(Buffer& buffer) {
     add_header_(buffer);
 
     // 调用注册的动态回调函数
-    dynamic_router_[file_path_](dynamic_buffer_);
+    dynamic_router_[file_path_](request, dynamic_buffer_);
     buffer.write_buffer("Content-length: " +
                         std::to_string(dynamic_buffer_.get_readable_bytes()) +
                         "\r\n\r\n");

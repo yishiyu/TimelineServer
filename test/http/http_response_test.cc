@@ -25,6 +25,9 @@ class HttpResponseTest : public ::testing::Test {
 
   // override TearDown 来清理数据
   void TearDown() override { Log::get_instance()->flush(); }
+
+  // 只是起一个占位符的作用(暂时)
+  HttpRequest request;
 };
 
 TEST_F(HttpResponseTest, success) {
@@ -33,7 +36,7 @@ TEST_F(HttpResponseTest, success) {
 
   Buffer buff;
 
-  response.make_response(buff);
+  response.make_response(request, buff);
 
   cout << buff.read_all() << endl;
   cout << response.get_file() << endl;
@@ -45,7 +48,7 @@ TEST_F(HttpResponseTest, failure) {
 
   Buffer buff;
 
-  response.make_response(buff);
+  response.make_response(request, buff);
 
   cout << buff.read_all() << endl;
   cout << response.get_file() << endl;

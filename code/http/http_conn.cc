@@ -124,7 +124,7 @@ bool HttpConn::process() {
   }
 
   // 响应报文
-  response_.make_response(write_buff_);
+  response_.make_response(this->request_, write_buff_);
   iov_[0].iov_base = const_cast<char*>(write_buff_.get_read_ptr());
   iov_[0].iov_len = write_buff_.get_readable_bytes();
   iov_count_ = 1;
