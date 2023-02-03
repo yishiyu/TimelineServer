@@ -92,7 +92,7 @@ void HttpResponse::make_response(const HttpRequest& request, Buffer& buffer) {
     } else {
       // 动态路由出错
       code_ = 500;
-      LOG_ERROR("dynamic router error: %s", file_path_);
+      LOG_ERROR("dynamic router error: %s", file_path_.data());
     }
   } else {
     // 2. 静态路由
