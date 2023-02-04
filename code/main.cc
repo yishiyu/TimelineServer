@@ -324,6 +324,43 @@ bool router_update(const HttpRequest& request, Buffer& buffer) {
 }
 
 bool router_delete(const HttpRequest& request, Buffer& buffer) {
-  buffer.write_buffer("delete");
+  Json::object result;
+  string action_token =
+      request.query_post("action_info")["action_token"].string_value();
+  if (online_lists_token2id.count(action_token) == 0) {
+    // 用户未登录
+    result["action_result"] = false;
+    result["result_info"] = Json::object{{"error_info", "用户未登录"}};
+    buffer.write_buffer(((Json)result).dump());
+
+    LOG_DEBUG("User(action_token:[%s]) logout failed!", action_token.data());
+    return true;
+  }
+
+  // 创建数据库连接
+  TimelineServer::SQLConn conn;
+  if (!conn.is_valid()) {
+    LOG_INFO("Get SQL connection failed!");
+    // 直接返回 502 状态码
+    return false;
+  }
+
+  // 准备delete语句
+  uint64_t user_id = online_lists_token2id[action_token];
+  uint64_t task_id = request.query_post("action_info")["task_id"].int_value();
+
+  std::shared_ptr<sql::PreparedStatement> sql_pstmt(
+      conn.connection->prepareStatement(
+          "delete from tasks where task_id=? and user_id=?"));
+
+  sql_pstmt->setUInt64(1, task_id);
+  sql_pstmt->setUInt64(2, user_id);
+
+  sql_pstmt->execute();
+
+  result["action_result"] = true;
+  buffer.write_buffer(((Json)result).dump());
+
+  LOG_DEBUG("User[task_id:%d] update successfully!", task_id);
   return true;
 }
