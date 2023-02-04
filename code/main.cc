@@ -20,8 +20,8 @@ bool router_add(const HttpRequest& request, Buffer& buffer);
 bool router_modify(const HttpRequest& request, Buffer& buffer);
 bool router_delete(const HttpRequest& request, Buffer& buffer);
 
-unordered_map<string, string> online_lists_id2token;
-unordered_map<string, string> online_lists_token2id;
+unordered_map<uint64_t, string> online_lists_id2token;
+unordered_map<string, uint64_t> online_lists_token2id;
 
 int main() {
   TimelineServer::Server server(2333, true, 60000, true, "../", "localhost",
@@ -126,7 +126,7 @@ bool router_login(const HttpRequest& request, Buffer& buffer) {
   string action_token = token_generator(20);
 
   // 记录用户登录状态
-  string user_id = std::to_string(sql_result->getUInt64("user_id"));
+  uint64_t user_id = sql_result->getUInt64("user_id");
   online_lists_token2id[action_token] = user_id;
   online_lists_id2token[user_id] = action_token;
 
@@ -152,7 +152,7 @@ bool router_logout(const HttpRequest& request, Buffer& buffer) {
     return true;
   }
 
-  string user_id = online_lists_token2id[action_token];
+  uint64_t user_id = online_lists_token2id[action_token];
   online_lists_id2token.erase(user_id);
   online_lists_token2id.erase(action_token);
 
@@ -203,10 +203,10 @@ bool router_query(const HttpRequest& request, Buffer& buffer) {
   }
 
   // 准备查询语句
-  string user_id = online_lists_token2id[action_token];
+  uint64_t user_id = online_lists_token2id[action_token];
   std::shared_ptr<sql::PreparedStatement> sql_pstmt(
       conn.connection->prepareStatement("select * from tasks where user_id=?"));
-  sql_pstmt->setString(1, user_id);
+  sql_pstmt->setUInt64(1, user_id);
 
   std::shared_ptr<sql::ResultSet> sql_result(sql_pstmt->executeQuery());
 
@@ -228,7 +228,52 @@ bool router_query(const HttpRequest& request, Buffer& buffer) {
 }
 
 bool router_add(const HttpRequest& request, Buffer& buffer) {
-  buffer.write_buffer("add");
+  Json::object result;
+  string action_token =
+      request.query_post("action_info")["action_token"].string_value();
+  if (online_lists_token2id.count(action_token) == 0) {
+    // 用户未登录
+    result["action_result"] = false;
+    result["result_info"] = Json::object{{"error_info", "用户未登录"}};
+    buffer.write_buffer(((Json)result).dump());
+
+    LOG_DEBUG("User(action_token:[%s]) logout failed!", action_token.data());
+    return true;
+  }
+
+  // 创建数据库连接
+  TimelineServer::SQLConn conn;
+  if (!conn.is_valid()) {
+    LOG_INFO("Get SQL connection failed!");
+    // 直接返回 502 状态码
+    return false;
+  }
+
+  // 准备add语句
+  uint64_t user_id = online_lists_token2id[action_token];
+  string time = request.query_post("action_info")["time"].string_value();
+  string task = request.query_post("action_info")["task"].string_value();
+  int priority = request.query_post("action_info")["priority"].int_value();
+
+  std::shared_ptr<sql::PreparedStatement> sql_pstmt(
+      conn.connection->prepareStatement("insert into tasks(user_id, time, "
+                                        "task, priority) values(?, ?, ?, ?)"));
+
+  sql_pstmt->setUInt64(1, user_id);
+  sql_pstmt->setString(2, time);
+  sql_pstmt->setString(3, task);
+  sql_pstmt->setInt(4, priority);
+
+  // 这个execute函数有点抽风,从结果看命名插入了但还是返回了false
+  // 没找到C++的文档,Java的文档里是这么说的
+  // true if the first result is a ResultSet object; false if it is an update
+  // count or there are no results 先不用这个返回值判断是否成功插入
+  sql_pstmt->execute();
+  
+  result["action_result"] = true;
+  buffer.write_buffer(((Json)result).dump());
+
+  LOG_DEBUG("User[id:%d] query successfully!", user_id);
   return true;
 }
 
