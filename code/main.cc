@@ -20,8 +20,8 @@ bool router_add(const HttpRequest& request, Buffer& buffer);
 bool router_modify(const HttpRequest& request, Buffer& buffer);
 bool router_delete(const HttpRequest& request, Buffer& buffer);
 
-unordered_map<string, string> action_tokens;
-unordered_map<string, string> online_lists;
+unordered_map<string, string> online_lists_id2token;
+unordered_map<string, string> online_lists_token2id;
 
 int main() {
   TimelineServer::Server server(2333, true, 60000, true, "../", "localhost",
@@ -127,8 +127,8 @@ bool router_login(const HttpRequest& request, Buffer& buffer) {
 
   // 记录用户登录状态
   string user_id = std::to_string(sql_result->getUInt64("user_id"));
-  action_tokens[action_token] = user_id;
-  online_lists[user_name] = action_token;
+  online_lists_token2id[action_token] = user_id;
+  online_lists_id2token[user_id] = action_token;
 
   result["action_result"] = true;
   result["result_info"] = Json::object{{"action_token", action_token}};
@@ -139,7 +139,28 @@ bool router_login(const HttpRequest& request, Buffer& buffer) {
 }
 
 bool router_logout(const HttpRequest& request, Buffer& buffer) {
-  buffer.write_buffer("logout");
+  Json::object result;
+  string action_token =
+      request.query_post("action_info")["action_token"].string_value();
+  if (online_lists_token2id.count(action_token) == 0) {
+    // 用户未登录
+    result["action_result"] = false;
+    result["result_info"] = Json::object{{"error_info", "用户未登录"}};
+    buffer.write_buffer(((Json)result).dump());
+
+    LOG_DEBUG("User(action_token:[%s]) logout failed!", action_token.data());
+    return true;
+  }
+
+  string user_id = online_lists_token2id[action_token];
+  online_lists_id2token.erase(user_id);
+  online_lists_token2id.erase(action_token);
+
+  result["action_result"] = true;
+  buffer.write_buffer(((Json)result).dump());
+
+  LOG_DEBUG("User(action_token:[%s]) logout successfully!",
+            action_token.data());
   return true;
 }
 
