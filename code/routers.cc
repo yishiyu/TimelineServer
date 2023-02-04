@@ -51,19 +51,24 @@ bool router_login(const HttpRequest& request, Buffer& buffer) {
     sql_pstmt_create_user->setString(1, user_name);
     sql_pstmt_create_user->setString(2, user_passwd);
 
-    if (sql_pstmt_create_user->execute()) {
-      LOG_DEBUG("User[%s] created successfully!", user_name.data());
-      // 重新执行查询语句
-      sql_result.reset(sql_pstmt->executeQuery());
-    } else {
-      // 创建用户失败
-      result["action_result"] = false;
-      result["result_info"] = Json::object{{"error_info", "创建用户失败"}};
-      buffer.write_buffer(((Json)result).dump());
+    sql_pstmt_create_user->execute();
+    LOG_DEBUG("User[%s] created successfully!", user_name.data());
+    // 重新执行查询语句
+    sql_result.reset(sql_pstmt->executeQuery());
+    
+    // if (sql_pstmt_create_user->execute()) {
+    //   LOG_DEBUG("User[%s] created successfully!", user_name.data());
+    //   // 重新执行查询语句
+    //   sql_result.reset(sql_pstmt->executeQuery());
+    // } else {
+    //   // 创建用户失败
+    //   result["action_result"] = false;
+    //   result["result_info"] = Json::object{{"error_info", "创建用户失败"}};
+    //   buffer.write_buffer(((Json)result).dump());
 
-      LOG_DEBUG("Failed to create user[%s]!", user_name.data());
-      return true;
-    }
+    //   LOG_DEBUG("Failed to create user[%s]!", user_name.data());
+    //   return true;
+    // }
 
   } else {
     sql_result->next();
