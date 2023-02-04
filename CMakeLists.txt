@@ -22,7 +22,7 @@ FetchContent_MakeAvailable(googletest)
 # 添加子目录和头文件
 include_directories("code")
 file(GLOB TIMELINE_SERVER_SRC "code/*/*.cc")
-file(GLOB TIMELINE_SERVER_MAIN "code/main.cc")
+file(GLOB TIMELINE_SERVER_MAIN "code/*.cc")
 
 #设置可执行文件目标
 set(executable_target "TimelineServer")
