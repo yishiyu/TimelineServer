@@ -17,7 +17,7 @@ bool router_login(const HttpRequest& request, Buffer& buffer);
 bool router_logout(const HttpRequest& request, Buffer& buffer);
 bool router_query(const HttpRequest& request, Buffer& buffer);
 bool router_add(const HttpRequest& request, Buffer& buffer);
-bool router_modify(const HttpRequest& request, Buffer& buffer);
+bool router_update(const HttpRequest& request, Buffer& buffer);
 bool router_delete(const HttpRequest& request, Buffer& buffer);
 
 unordered_map<uint64_t, string> online_lists_id2token;
@@ -36,7 +36,7 @@ int main() {
   server.register_dynamic_router("/action/logout", router_logout);
   server.register_dynamic_router("/action/query", router_query);
   server.register_dynamic_router("/action/add", router_add);
-  server.register_dynamic_router("/action/modify", router_modify);
+  server.register_dynamic_router("/action/update", router_update);
   server.register_dynamic_router("/action/delete", router_delete);
 
   server.start();
@@ -269,16 +269,57 @@ bool router_add(const HttpRequest& request, Buffer& buffer) {
   // true if the first result is a ResultSet object; false if it is an update
   // count or there are no results 先不用这个返回值判断是否成功插入
   sql_pstmt->execute();
-  
+
   result["action_result"] = true;
   buffer.write_buffer(((Json)result).dump());
 
-  LOG_DEBUG("User[id:%d] query successfully!", user_id);
+  LOG_DEBUG("User[id:%d] insert successfully!", user_id);
   return true;
 }
 
-bool router_modify(const HttpRequest& request, Buffer& buffer) {
-  buffer.write_buffer("modify");
+bool router_update(const HttpRequest& request, Buffer& buffer) {
+  Json::object result;
+  string action_token =
+      request.query_post("action_info")["action_token"].string_value();
+  if (online_lists_token2id.count(action_token) == 0) {
+    // 用户未登录
+    result["action_result"] = false;
+    result["result_info"] = Json::object{{"error_info", "用户未登录"}};
+    buffer.write_buffer(((Json)result).dump());
+
+    LOG_DEBUG("User(action_token:[%s]) logout failed!", action_token.data());
+    return true;
+  }
+
+  // 创建数据库连接
+  TimelineServer::SQLConn conn;
+  if (!conn.is_valid()) {
+    LOG_INFO("Get SQL connection failed!");
+    // 直接返回 502 状态码
+    return false;
+  }
+
+  // 准备update语句
+  uint64_t task_id = request.query_post("action_info")["task_id"].int_value();
+  string time = request.query_post("action_info")["time"].string_value();
+  string task = request.query_post("action_info")["task"].string_value();
+  int priority = request.query_post("action_info")["priority"].int_value();
+
+  std::shared_ptr<sql::PreparedStatement> sql_pstmt(
+      conn.connection->prepareStatement(
+          "update tasks set time=?, task=?, priority=? where task_id=?"));
+
+  sql_pstmt->setString(1, time);
+  sql_pstmt->setString(2, task);
+  sql_pstmt->setInt(3, priority);
+  sql_pstmt->setUInt64(4, task_id);
+
+  int update_count = sql_pstmt->executeUpdate();
+
+  result["action_result"] = true;
+  buffer.write_buffer(((Json)result).dump());
+
+  LOG_DEBUG("User[task_id:%d] update successfully!", task_id);
   return true;
 }
 
