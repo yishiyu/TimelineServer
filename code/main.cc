@@ -164,8 +164,66 @@ bool router_logout(const HttpRequest& request, Buffer& buffer) {
   return true;
 }
 
+struct task {
+  string task_id_;
+  string time_;
+  string task_;
+  string priority_;
+  task(const string& task_id, const string& time, const string& task,
+       const string& priority)
+      : task_id_(task_id), time_(time), task_(task), priority_(priority) {}
+  Json to_json() const {
+    return Json::object{{"task_id", task_id_},
+                        {"time", time_},
+                        {"task", task_},
+                        {"priority", priority_}};
+  }
+};
+
 bool router_query(const HttpRequest& request, Buffer& buffer) {
-  buffer.write_buffer("query");
+  Json::object result;
+  string action_token =
+      request.query_post("action_info")["action_token"].string_value();
+  if (online_lists_token2id.count(action_token) == 0) {
+    // 用户未登录
+    result["action_result"] = false;
+    result["result_info"] = Json::object{{"error_info", "用户未登录"}};
+    buffer.write_buffer(((Json)result).dump());
+
+    LOG_DEBUG("User(action_token:[%s]) logout failed!", action_token.data());
+    return true;
+  }
+
+  // 创建数据库连接
+  TimelineServer::SQLConn conn;
+  if (!conn.is_valid()) {
+    LOG_INFO("Get SQL connection failed!");
+    // 直接返回 502 状态码
+    return false;
+  }
+
+  // 准备查询语句
+  string user_id = online_lists_token2id[action_token];
+  std::shared_ptr<sql::PreparedStatement> sql_pstmt(
+      conn.connection->prepareStatement("select * from tasks where user_id=?"));
+  sql_pstmt->setString(1, user_id);
+
+  std::shared_ptr<sql::ResultSet> sql_result(sql_pstmt->executeQuery());
+
+  std::vector<task> tasks;
+  while (sql_result->next()) {
+    tasks.push_back(task(sql_result->getString("task_id").asStdString(),
+                         sql_result->getString("time").asStdString(),
+                         sql_result->getString("task").asStdString(),
+                         sql_result->getString("priority").asStdString()));
+  }
+
+  result["action_result"] = true;
+  result["result_info"] =
+      Json::object{{"result_info", Json::object{{"tasks", Json(tasks)}}}};
+  buffer.write_buffer(((Json)result).dump());
+
+  LOG_DEBUG("User[id:%d] query successfully!", user_id);
   return true;
 }
 
