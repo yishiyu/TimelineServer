@@ -60,45 +60,81 @@ bool router_login(const HttpRequest& request, Buffer& buffer) {
   // 创建数据库连接
   TimelineServer::SQLConn conn;
   if (!conn.is_valid()) {
-    result["action_result"] = false;
-    buffer.write_buffer(((Json)result).dump());
     LOG_INFO("Get SQL connection failed!");
-    return true;
+    // 直接返回 502 状态码
+    return false;
   }
 
   // 准备查询语句
   std::shared_ptr<sql::PreparedStatement> sql_pstmt(
       conn.connection->prepareStatement(
-          "select * from users where user_name=? and user_passwd=?"));
-  string user_name = request.query_post("action_info")["name"].string_value();
+          "select * from users where user_name=?"));
+  string user_name = request.query_post("action_info")["user"].string_value();
   string user_passwd =
       request.query_post("action_info")["passwd"].string_value();
   sql_pstmt->setString(1, user_name);
-  sql_pstmt->setString(2, user_passwd);
 
   // 查询结果
   std::shared_ptr<sql::ResultSet> sql_result(sql_pstmt->executeQuery());
-  assert(sql_result->rowsCount() < 2);
+  if (sql_result->rowsCount() > 1) {
+    LOG_WARN("存在重名用户: %s", user_name.data());
+    // 返回 502
+    return false;
+  }
+
   if (sql_result->rowsCount() == 0) {
-    result["action_result"] = false;
-    buffer.write_buffer(((Json)result).dump());
-    LOG_INFO("User[%s] login failed!", user_name.data());
-    return true;
+    // 没有该用户, 新建用户
+    std::shared_ptr<sql::PreparedStatement> sql_pstmt_create_user(
+        conn.connection->prepareStatement(
+            "insert into users(user_name, user_passwd) values(?, ?)"));
+    sql_pstmt_create_user->setString(1, user_name);
+    sql_pstmt_create_user->setString(2, user_passwd);
+
+    if (sql_pstmt_create_user->execute()) {
+      LOG_DEBUG("User[%s] created successfully!", user_name.data());
+      // 重新执行查询语句
+      sql_result.reset(sql_pstmt->executeQuery());
+    } else {
+      // 创建用户失败
+      result["action_result"] = false;
+      result["result_info"] = Json::object{{"error_info", "创建用户失败"}};
+      buffer.write_buffer(((Json)result).dump());
+
+      LOG_DEBUG("Failed to create user[%s]!", user_name.data());
+      return true;
+    }
+
+  } else {
+    sql_result->next();
+    // 用户存在,验证密码
+    string temp = sql_result->getString("user_passwd").asStdString();
+    if (temp == user_passwd) {
+      // 用户验证成功
+      // LOG_DEBUG("User[%s] login successfully!", user_name.data());
+    } else {
+      // 用户验证失败
+      result["action_result"] = false;
+      result["result_info"] = Json::object{{"error_info", "帐号密码错误"}};
+      buffer.write_buffer(((Json)result).dump());
+      LOG_DEBUG("User[%s] login failed because of wrong password!",
+                user_name.data());
+      return true;
+    }
   }
 
   // 为该连接创建 action_token
   string action_token = token_generator(20);
 
   // 记录用户登录状态
-  sql_result->next();
-  action_tokens[action_token] = sql_result->getUInt64("user_id");
-  online_lists[sql_result->getString("user_name")] = action_token;
+  string user_id = std::to_string(sql_result->getUInt64("user_id"));
+  action_tokens[action_token] = user_id;
+  online_lists[user_name] = action_token;
 
   result["action_result"] = true;
-  result["action_info"] = Json::object{{"action_token", action_token}};
-
+  result["result_info"] = Json::object{{"action_token", action_token}};
   buffer.write_buffer(((Json)result).dump());
-  LOG_INFO("User[%s] login success!", user_name.data());
+
+  LOG_DEBUG("User[%s] login successfully!", user_name.data());
   return true;
 }
 
