@@ -59,14 +59,13 @@ ssize_t HttpConn::read(int* errno_) {
     len = read_buff_.read_fd(sock_fd_, errno_);
     // 不能指望在没有内容读的时候 len=0
     // 其实这个时候 len = readv() = -1, errno = EAGAIN
-    // 应该判断 read_buff_.get_readable_bytes() 中是否读到内容
     if (len < 0) {
-      if (read_buff_.get_readable_bytes() == 0) {
-        // 没有读到东西
-        return -1;
-      } else {
+      if (*errno_ == EAGAIN) {
         // 成功读到内容且无新内容可读了已经
         return 0;
+      } else {
+        // 没有读到东西
+        return -1;
       }
     }
   } while (true);
