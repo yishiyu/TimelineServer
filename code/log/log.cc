@@ -70,7 +70,7 @@ void Log::write_buffer(LOG_LEVEL level, const char* format, ...) {
       (line_count_ && (line_count_ % MAX_LINES == 0))) {
     std::lock_guard<std::mutex> locker(fp_mtx_);
 
-    char new_file[LOG_NAME_LEN];
+    char new_file[LOG_NAME_LEN] = {0};
     char tail[36] = {0};
     snprintf(tail, 36, "%04d_%02d_%02d", t.tm_year + 1900, t.tm_mon + 1,
              t.tm_mday);

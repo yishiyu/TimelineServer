@@ -21,7 +21,7 @@ Server::Server(int port, bool is_ET, int timeout_ms, bool linger_close,
   // char src_dir[256] = {0};
   // getcwd(src_dir, 256);
   src_dir_ = string(src_dir) + "data/resources";
-  string log_dir = string(src_dir) + "data/log/";
+  string log_dir = string(src_dir) + "data/log";
 
   Log::get_instance()->init(log_level, log_dir.data(), ".log", log_queue_size);
 
