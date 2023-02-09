@@ -140,35 +140,30 @@
 
   - 浏览器发送内容
 
-    ```json
+    ```text
     {
         "action": "login/logout/query/add/update/delete",
         "action_info": {
-            <!-- action 为 xxx 时需要的信息 -->
-            <!-- login: -->
+            // action 为 xxx 时需要的信息
+            // login:
             "user": "xxx",
             "passwd": "xxx",
-
-            <!-- logout: -->
+            // logout:
             "action_token": "xxx",
-
-            <!-- query: -->
+            // query:
             "action_token": "xxx",
-
-            <!-- add: -->
+            // add:
             "action_token": "xxx",
             "time": "时间戳",
             "task": "xxx",
             "priority": "0-10(越大越重要)",
-
-            <!-- update: -->
+            // update:
             "action_token": "xxx",
             "task_id": "xxx",
             "time": "时间戳",
             "task": "xxx",
             "priority": "0-10(越大越重要)",
-            
-            <!-- delete -->
+            // delete
             "action_token": "xxx",
             "task_id": "xxx", 
         },
