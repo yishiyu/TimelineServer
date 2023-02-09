@@ -125,7 +125,6 @@
 
     ```json
     {   
-        // 由服务器生成的唯一id
         "task_id": "xxx",
         "user_id": "xxx",
         "time": "时间戳",
