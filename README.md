@@ -172,7 +172,7 @@
 
   - 服务器回复内容
 
-      ```json
+      ```text
       {
           "action_result": "true/false",
           "result_info": {
