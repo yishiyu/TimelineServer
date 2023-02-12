@@ -44,6 +44,8 @@ class HttpConn {
   };
   bool is_keep_alive() const { return request_.get_is_keep_alive(); };
 
+  bool is_closed() const {return is_closed_;}
+
  private:
   static bool is_ET_;
   static string src_dir_;

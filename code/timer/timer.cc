@@ -1,5 +1,7 @@
 #include "timer.h"
 
+const static char LOG_TAG[] = "TIMER";
+
 namespace TimelineServer {
 
 void Timer::add_timer(timer_id id, int timeout, const timeout_cb& call_back) {
@@ -54,6 +56,7 @@ void Timer::adjust(timer_id id, int timeout) {
 }
 
 void Timer::clear() {
+  LOG_DEBUG("[%s] timers are cleared up.", LOG_TAG);
   timer_ref_.clear();
   heap_.clear();
 }
@@ -71,6 +74,7 @@ void Timer::tick() {
     }
 
     // 触发该定时器
+    LOG_DEBUG("[%s] timer[%d] triggerd.", LOG_TAG, node.id);
     node.cb();
     pop_timer();
   }

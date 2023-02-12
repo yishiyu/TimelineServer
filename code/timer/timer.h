@@ -7,6 +7,8 @@
 #include <unordered_map>
 #include <vector>
 
+#include "log/log.h"
+
 typedef std::function<void()> timeout_cb;
 typedef unsigned int timer_id;
 typedef std::chrono::high_resolution_clock Clock;

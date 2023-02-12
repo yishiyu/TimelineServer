@@ -109,6 +109,7 @@ void Server::start() {
       } else if (event & (EPOLLRDHUP | EPOLLHUP | EPOLLERR)) {
         // 连接断开
         assert(connections_.count(fd) > 0);
+        LOG_DEBUG("[%s] Connection[%d] disconnect event triggered.", LOG_TAG, fd);
         deal_close_conn_(connections_[fd]);
       } else if (event & EPOLLIN) {
         // 收到数据
@@ -297,8 +298,13 @@ void Server::deal_new_conn_() {
 }
 
 void Server::deal_close_conn_(HttpConn& client) {
+  if(client.is_closed()){
+    LOG_WARN("[%s] Close a closed connection[%d].", LOG_TAG, client.get_fd());
+    return;
+  }
   LOG_INFO("[%s] Client[%d] quit!", LOG_TAG, client.get_fd());
-  mux_->del_fd(client.get_fd());
+
+  int ret = mux_->del_fd(client.get_fd());
   client.close_conn();
 }
 
@@ -347,6 +353,11 @@ void Server::set_fd_noblock(int fd) {
 }
 
 void Server::on_read_(HttpConn& client) {
+  if (client.is_closed()){
+    LOG_WARN("[%s] Read a closed connection[%d].", LOG_TAG, client.get_fd());
+    return;
+  }
+
   int errno_;
   int ret = client.read(&errno_);
   if (ret < 0) {
@@ -367,6 +378,11 @@ void Server::on_read_(HttpConn& client) {
 }
 
 void Server::on_write_(HttpConn& client) {
+  if (client.is_closed()){
+    LOG_WARN("[%s] Write to a closed connection[%d].", LOG_TAG, client.get_fd());
+    return;
+  }
+
   int errno_;
   int ret = client.write(&errno_);
   if (ret < 0) {
@@ -393,6 +409,11 @@ void Server::on_write_(HttpConn& client) {
 }
 
 void Server::on_progress_(HttpConn& client) {
+  if (client.is_closed()){
+    LOG_WARN("[%s] Process a closed connection[%d].", LOG_TAG, client.get_fd());
+    return;
+  }
+
   if (client.process()) {
     // 处理报文成功,等待可写时回复
     mux_->mod_fd(client.get_fd(), conn_events_ | EPOLLOUT);

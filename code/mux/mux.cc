@@ -43,6 +43,10 @@ bool Mux::del_fd(int fd) {
 }
 
 int Mux::wait(int timeout) {
+  // While one thread is blocked in a call to epoll_pwait(), 
+  // it is possible for another thread to add a file descriptor 
+  // to the waited-upon epoll instance. If the new file descriptor 
+  // becomes ready, it will cause the epoll_wait() call to unblock. 
   events_count_ = epoll_wait(mux_fd_, &events_[0],
                              static_cast<int>(events_.size()), timeout);
   return events_count_;
