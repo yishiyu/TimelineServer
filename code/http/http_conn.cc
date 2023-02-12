@@ -1,5 +1,7 @@
 #include "http_conn.h"
 
+const static char LOG_TAG[] = "HTTP_CONN";
+
 namespace TimelineServer {
 
 bool HttpConn::is_ET_;
@@ -25,7 +27,7 @@ void HttpConn::init(int sock_fd, const sockaddr_in& sock_addr) {
   read_buff_.clear();
   write_buff_.clear();
   // LOG
-  LOG_INFO("Client[%d](%s:%d) in, userCount:%d", sock_fd_, get_ip().data(),
+  LOG_INFO("[%s] Client[%d](%s:%d) in, userCount:%d", LOG_TAG, sock_fd_, get_ip().data(),
            get_port(), (int)user_count_);
 }
 
@@ -39,7 +41,7 @@ void HttpConn::close_conn() {
     close(sock_fd_);
     response_.unmap_file();
     // LOG
-    LOG_INFO("Client[%d](%s:%d) quit, UserCount:%d", sock_fd_, get_ip().data(),
+    LOG_INFO("[%s] Client[%d](%s:%d) quit, UserCount:%d", LOG_TAG, sock_fd_, get_ip().data(),
              get_port(), (int)user_count_);
   }
 }
@@ -113,7 +115,6 @@ bool HttpConn::process() {
 
   // 解析报文
   if (request_.parse(read_buff_)) {
-    LOG_DEBUG("%s", request_.get_path().data());
     // 返回成功报文
     response_.init(src_dir_, request_.get_path(), request_.get_is_keep_alive(),
                    200);
@@ -134,7 +135,7 @@ bool HttpConn::process() {
     iov_count_ = 2;
   }
 
-  LOG_DEBUG("filesize:%d, response size:%d", response_.get_file_size(),
+  LOG_DEBUG("[%s] filesize:%d, response size:%d", LOG_TAG, response_.get_file_size(),
             get_writable_bytes());
   return true;
 }

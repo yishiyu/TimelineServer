@@ -1,5 +1,7 @@
 #include "http_response.h"
 
+const static char LOG_TAG[] = "HTTP_RESPONSE";
+
 namespace TimelineServer {
 
 unordered_map<string, router_cb> HttpResponse::dynamic_router_;
@@ -74,6 +76,7 @@ void HttpResponse::init(const std::string& src_dir,
 void HttpResponse::make_response(const HttpRequest& request, Buffer& buffer) {
   // 处理路由
   if (dynamic_router_.count(file_path_) > 0) {
+    LOG_DEBUG("[%s] Processing dynamic request.", LOG_TAG);
     // 1. 动态路由
     // 调用注册的动态回调函数
     if (dynamic_router_[file_path_](request, dynamic_buffer_)) {
@@ -92,9 +95,10 @@ void HttpResponse::make_response(const HttpRequest& request, Buffer& buffer) {
     } else {
       // 动态路由出错
       code_ = 500;
-      LOG_ERROR("dynamic router error: %s", file_path_.data());
+      LOG_ERROR("[%s] dynamic router error: %s", LOG_TAG, file_path_.data());
     }
   } else {
+    LOG_DEBUG("[%s] Processing static request.", LOG_TAG);
     // 2. 静态路由
     if (static_router_.count(file_path_) > 0) {
       // 需要跳转(如'/'跳转到'index.html')
@@ -102,20 +106,20 @@ void HttpResponse::make_response(const HttpRequest& request, Buffer& buffer) {
     }
 
     // 判断响应码
-    LOG_DEBUG("Try to return file \"%s\"", (src_dir_ + file_path_).data());
+    LOG_DEBUG("[%s] Try to return file \"%s\"", LOG_TAG, (src_dir_ + file_path_).data());
     if (stat((src_dir_ + file_path_).data(), &mm_file_stat_) < 0 ||
         S_ISDIR(mm_file_stat_.st_mode)) {
       // https://man7.org/linux/man-pages/man2/lstat.2.html
       // stat 失败时返回 -1
       // 或者找到的目标是文件夹
       code_ = 404;
-      LOG_DEBUG("\"%s\" not Found.", (src_dir_ + file_path_).data());
+      LOG_DEBUG("[%s] \"%s\" not Found.", LOG_TAG, (src_dir_ + file_path_).data());
     } else if (!(mm_file_stat_.st_mode & S_IROTH)) {
       // IROTH ==> Is Readable for OTHers
       // Read permission bit for other users. Usually 04.
       // 不允许读取
       code_ = 403;
-      LOG_DEBUG("\"%s\" permission denied.", (src_dir_ + file_path_).data());
+      LOG_DEBUG("[%s] \"%s\" permission denied.", LOG_TAG, (src_dir_ + file_path_).data());
     } else if (code_ == -1) {
       // 可能初始化的时候传入了其他错误码,不应该覆盖成200
       code_ = 200;
@@ -180,7 +184,7 @@ void HttpResponse::add_content_(Buffer& buff) {
   int fd = open((src_dir_ + file_path_).data(), O_RDONLY);
   if (fd < 0) {
     add_error_content(buff, "File Not Found.");
-    LOG_DEBUG("File \"%s\" not found.", (src_dir_ + file_path_).data());
+    LOG_DEBUG("[%s] File \"%s\" not found.", LOG_TAG, (src_dir_ + file_path_).data());
     return;
   }
 
@@ -188,7 +192,7 @@ void HttpResponse::add_content_(Buffer& buff) {
       (int*)mmap(nullptr, mm_file_stat_.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
   if (*mm_file == -1) {
     add_error_content(buff, "File Not Found.");
-    LOG_DEBUG("File \"%s\" not found.", (src_dir_ + file_path_).data());
+    LOG_DEBUG("[%s] File \"%s\" not found.", LOG_TAG, (src_dir_ + file_path_).data());
     return;
   }
 

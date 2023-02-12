@@ -3,6 +3,8 @@
 unordered_map<uint64_t, string> online_lists_id2token;
 unordered_map<string, uint64_t> online_lists_token2id;
 
+const static char LOG_TAG[] = "ROUTERS";
+
 string token_generator(int length) {
   static string charset =
       "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890";
@@ -21,7 +23,7 @@ bool router_login(const HttpRequest& request, Buffer& buffer) {
   // 创建数据库连接
   TimelineServer::SQLConn conn;
   if (!conn.is_valid()) {
-    LOG_INFO("Get SQL connection failed!");
+    LOG_INFO("[%s] Get SQL connection failed!", LOG_TAG);
     // 直接返回 502 状态码
     return false;
   }
@@ -38,7 +40,7 @@ bool router_login(const HttpRequest& request, Buffer& buffer) {
   // 查询结果
   std::shared_ptr<sql::ResultSet> sql_result(sql_pstmt->executeQuery());
   if (sql_result->rowsCount() > 1) {
-    LOG_WARN("存在重名用户: %s", user_name.data());
+    LOG_WARN("[%s] 存在重名用户: %s", LOG_TAG, user_name.data());
     // 返回 502
     return false;
   }
@@ -52,7 +54,7 @@ bool router_login(const HttpRequest& request, Buffer& buffer) {
     sql_pstmt_create_user->setString(2, user_passwd);
 
     sql_pstmt_create_user->execute();
-    LOG_DEBUG("User[%s] created successfully!", user_name.data());
+    LOG_DEBUG("[%s], User[%s] created successfully!", LOG_TAG, user_name.data());
     // 重新执行查询语句
     sql_result.reset(sql_pstmt->executeQuery());
     
@@ -82,8 +84,8 @@ bool router_login(const HttpRequest& request, Buffer& buffer) {
       result["action_result"] = false;
       result["result_info"] = Json::object{{"error_info", "帐号密码错误"}};
       buffer.write_buffer(((Json)result).dump());
-      LOG_DEBUG("User[%s] login failed because of wrong password!",
-                user_name.data());
+      LOG_DEBUG("[%s] User[%s] login failed because of wrong password!",
+                LOG_TAG, user_name.data());
       return true;
     }
   }
@@ -100,7 +102,7 @@ bool router_login(const HttpRequest& request, Buffer& buffer) {
   result["result_info"] = Json::object{{"action_token", action_token}};
   buffer.write_buffer(((Json)result).dump());
 
-  LOG_DEBUG("User[%s] login successfully!", user_name.data());
+  LOG_DEBUG("[%s] User[%s] login successfully!", LOG_TAG, user_name.data());
   return true;
 }
 
@@ -114,7 +116,7 @@ bool router_logout(const HttpRequest& request, Buffer& buffer) {
     result["result_info"] = Json::object{{"error_info", "用户未登录"}};
     buffer.write_buffer(((Json)result).dump());
 
-    LOG_DEBUG("User(action_token:[%s]) logout failed!", action_token.data());
+    LOG_DEBUG("[%s] User(action_token:[%s]) logout failed!", LOG_TAG, action_token.data());
     return true;
   }
 
@@ -125,7 +127,7 @@ bool router_logout(const HttpRequest& request, Buffer& buffer) {
   result["action_result"] = true;
   buffer.write_buffer(((Json)result).dump());
 
-  LOG_DEBUG("User(action_token:[%s]) logout successfully!",
+  LOG_DEBUG("[%s] User(action_token:[%s]) logout successfully!", LOG_TAG,
             action_token.data());
   return true;
 }
@@ -140,14 +142,14 @@ bool router_query(const HttpRequest& request, Buffer& buffer) {
     result["result_info"] = Json::object{{"error_info", "用户未登录"}};
     buffer.write_buffer(((Json)result).dump());
 
-    LOG_DEBUG("User(action_token:[%s]) logout failed!", action_token.data());
+    LOG_DEBUG("[%s] User(action_token:[%s]) logout failed!",LOG_TAG, action_token.data());
     return true;
   }
 
   // 创建数据库连接
   TimelineServer::SQLConn conn;
   if (!conn.is_valid()) {
-    LOG_INFO("Get SQL connection failed!");
+    LOG_INFO("[%s] Get SQL connection failed!", LOG_TAG);
     // 直接返回 502 状态码
     return false;
   }
@@ -173,7 +175,7 @@ bool router_query(const HttpRequest& request, Buffer& buffer) {
       Json::object{{"result_info", Json::object{{"tasks", Json(tasks)}}}};
   buffer.write_buffer(((Json)result).dump());
 
-  LOG_DEBUG("User[id:%d] query successfully!", user_id);
+  LOG_DEBUG("[%s] User[id:%d] query successfully!", LOG_TAG, user_id);
   return true;
 }
 
@@ -187,14 +189,14 @@ bool router_add(const HttpRequest& request, Buffer& buffer) {
     result["result_info"] = Json::object{{"error_info", "用户未登录"}};
     buffer.write_buffer(((Json)result).dump());
 
-    LOG_DEBUG("User(action_token:[%s]) logout failed!", action_token.data());
+    LOG_DEBUG("[%s] User(action_token:[%s]) logout failed!", LOG_TAG, action_token.data());
     return true;
   }
 
   // 创建数据库连接
   TimelineServer::SQLConn conn;
   if (!conn.is_valid()) {
-    LOG_INFO("Get SQL connection failed!");
+    LOG_INFO("[%s] Get SQL connection failed!", LOG_TAG);
     // 直接返回 502 状态码
     return false;
   }
@@ -223,7 +225,7 @@ bool router_add(const HttpRequest& request, Buffer& buffer) {
   result["action_result"] = true;
   buffer.write_buffer(((Json)result).dump());
 
-  LOG_DEBUG("User[id:%d] insert successfully!", user_id);
+  LOG_DEBUG("[%s] User[id:%d] insert successfully!", LOG_TAG, user_id);
   return true;
 }
 
@@ -237,14 +239,14 @@ bool router_update(const HttpRequest& request, Buffer& buffer) {
     result["result_info"] = Json::object{{"error_info", "用户未登录"}};
     buffer.write_buffer(((Json)result).dump());
 
-    LOG_DEBUG("User(action_token:[%s]) logout failed!", action_token.data());
+    LOG_DEBUG("[%s] User(action_token:[%s]) logout failed!", LOG_TAG, action_token.data());
     return true;
   }
 
   // 创建数据库连接
   TimelineServer::SQLConn conn;
   if (!conn.is_valid()) {
-    LOG_INFO("Get SQL connection failed!");
+    LOG_INFO("[%s] Get SQL connection failed!", LOG_TAG);
     // 直接返回 502 状态码
     return false;
   }
@@ -269,7 +271,7 @@ bool router_update(const HttpRequest& request, Buffer& buffer) {
   result["action_result"] = true;
   buffer.write_buffer(((Json)result).dump());
 
-  LOG_DEBUG("User[task_id:%d] update successfully!", task_id);
+  LOG_DEBUG("[%s] User[task_id:%d] update successfully!", LOG_TAG, task_id);
   return true;
 }
 
@@ -283,14 +285,14 @@ bool router_delete(const HttpRequest& request, Buffer& buffer) {
     result["result_info"] = Json::object{{"error_info", "用户未登录"}};
     buffer.write_buffer(((Json)result).dump());
 
-    LOG_DEBUG("User(action_token:[%s]) logout failed!", action_token.data());
+    LOG_DEBUG("[%s] User(action_token:[%s]) logout failed!", LOG_TAG, action_token.data());
     return true;
   }
 
   // 创建数据库连接
   TimelineServer::SQLConn conn;
   if (!conn.is_valid()) {
-    LOG_INFO("Get SQL connection failed!");
+    LOG_INFO("[%s] Get SQL connection failed!", LOG_TAG);
     // 直接返回 502 状态码
     return false;
   }
@@ -311,6 +313,6 @@ bool router_delete(const HttpRequest& request, Buffer& buffer) {
   result["action_result"] = true;
   buffer.write_buffer(((Json)result).dump());
 
-  LOG_DEBUG("User[task_id:%d] update successfully!", task_id);
+  LOG_DEBUG("[%s] User[task_id:%d] update successfully!", LOG_TAG, task_id);
   return true;
 }

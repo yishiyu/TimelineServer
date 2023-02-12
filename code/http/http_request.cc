@@ -1,5 +1,7 @@
 #include "http_request.h"
 
+const static char LOG_TAG[] = "HTTP_REQUEST";
+
 namespace TimelineServer {
 
 void HttpRequest::init() {
@@ -111,7 +113,7 @@ bool HttpRequest::parse_request_line_(const string& line) {
     return true;
   }
 
-  LOG_ERROR("Parse request line error!")
+  LOG_ERROR("[%s] Parse request line error!", LOG_TAG);
   return false;
 }
 
@@ -140,7 +142,7 @@ bool HttpRequest::parse_body_(const string& line) {
 
     if (error != "") {
       // 解析发生错误
-      LOG_ERROR("Body(json) parse error: %s", error.data());
+      LOG_ERROR("[%s] Body(json) parse error: %s", LOG_TAG, error.data());
       return false;
     }
   }

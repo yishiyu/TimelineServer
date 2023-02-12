@@ -1,5 +1,7 @@
 #include "server.h"
 
+const static char LOG_TAG[] = "SERVER";
+
 namespace TimelineServer {
 
 std::function<void(int)> shutdown_handler;
@@ -64,15 +66,15 @@ Server::Server(int port, bool is_ET, int timeout_ms, bool linger_close,
     }
 
     if (is_close_) {
-      LOG_ERROR("========== Server init error!==========");
+      LOG_ERROR("[%s] ========== Server init error!==========", LOG_TAG);
     } else {
-      LOG_INFO("========== Server init ==========");
-      LOG_INFO("Port:%d \tLinger close: %s", port_,
+      LOG_INFO("[%s] ========== Server init ==========", LOG_TAG);
+      LOG_INFO("[%s] Port:%d \tLinger close: %s", LOG_TAG, port_,
                linger_close_ ? "true" : "false");
-      LOG_INFO("Triger mode: %s", (is_ET_ ? "ET" : "LT"));
-      LOG_INFO("Log level: %s", log_level_stirng.data());
-      LOG_INFO("Src dir: %s", src_dir_.data());
-      LOG_INFO("SQL connection pool size: %d, Thread pool size: %d",
+      LOG_INFO("[%s] Triger mode: %s", LOG_TAG, (is_ET_ ? "ET" : "LT"));
+      LOG_INFO("[%s] Log level: %s", LOG_TAG, log_level_stirng.data());
+      LOG_INFO("[%s] Src dir: %s", LOG_TAG, src_dir_.data());
+      LOG_INFO("[%s] SQL connection pool size: %d, Thread pool size: %d", LOG_TAG,
                pool_sql_conn_num, pool_thread_num);
     }
   }
@@ -82,15 +84,15 @@ Server::~Server() {
   close(listen_fd_);
   is_close_ = true;
   SQLConnPool::get_instance()->close();
-  LOG_INFO("========== Server stop ==========");
-  LOG_INFO("Bye~")
+  LOG_INFO("[%s] ========== Server stop ==========", LOG_TAG);
+  LOG_INFO("[%s] Bye~", LOG_TAG)
 }
 
 void Server::start() {
   // time to next tick(MS)
   int ttnt_ms = -1;
   if (!is_close_) {
-    LOG_INFO("========== Server start ==========");
+    LOG_INFO("[%s] ========== Server start ==========", LOG_TAG);
   }
   while (!is_close_) {
     if (timeout_ms_ > 0) {
@@ -115,7 +117,7 @@ void Server::start() {
         // 发送数据
         deal_write_conn_(connections_[fd]);
       } else {
-        LOG_WARN("Unexpected event: %d!", event);
+        LOG_WARN("[%s] Unexpected event: %d!", LOG_TAG, event);
       }
     }
   }
@@ -173,7 +175,7 @@ bool Server::init_socket_() {
   struct sockaddr_in addr;
   if (port_ > 65535 || port_ < 1024) {
     // 超出可用端口号范围
-    LOG_ERROR("Port:%d error!", port_);
+    LOG_ERROR("[%s] Port:%d error!", LOG_TAG, port_);
     return false;
   }
 
@@ -183,7 +185,7 @@ bool Server::init_socket_() {
 
   listen_fd_ = socket(AF_INET, SOCK_STREAM, 0);
   if (listen_fd_ < 0) {
-    LOG_ERROR("Create socket error, Port: %d", port_);
+    LOG_ERROR("[%s] Create socket error, Port: %d", LOG_TAG, port_);
     return false;
   }
 
@@ -202,7 +204,7 @@ bool Server::init_socket_() {
                      sizeof(opt_linger));
     if (ret < 0) {
       close(listen_fd_);
-      LOG_ERROR("Init linger error!");
+      LOG_ERROR("[%s] Init linger error!", LOG_TAG);
       return false;
     }
   }
@@ -219,7 +221,7 @@ bool Server::init_socket_() {
                      (const void*)&opt_val, sizeof(int));
     if (ret == -1) {
       close(listen_fd_);
-      LOG_ERROR("Set socket setsockopt error !");
+      LOG_ERROR("[%s] Set socket setsockopt error !", LOG_TAG);
       return false;
     }
   }
@@ -228,7 +230,7 @@ bool Server::init_socket_() {
   ret = bind(listen_fd_, (struct sockaddr*)&addr, sizeof(addr));
   if (ret < 0) {
     close(listen_fd_);
-    LOG_ERROR("Bind port error,Port: %d", port_);
+    LOG_ERROR("[%s] Bind port error,Port: %d", LOG_TAG, port_);
     return false;
   }
 
@@ -236,7 +238,7 @@ bool Server::init_socket_() {
   ret = listen(listen_fd_, 6);
   if (ret < 0) {
     close(listen_fd_);
-    LOG_ERROR("Listen port error,Port: %d", port_);
+    LOG_ERROR("[%s] Listen port error,Port: %d", LOG_TAG, port_);
     return false;
   }
 
@@ -244,14 +246,14 @@ bool Server::init_socket_() {
   ret = mux_->add_fd(listen_fd_, listen_events_);
   if (ret == 0) {
     close(listen_fd_);
-    LOG_ERROR("Add listened socket to mux error!");
+    LOG_ERROR("[%s] Add listened socket to mux error!", LOG_TAG);
     return false;
   }
 
   // 6. 设置被监听socket为非阻塞模式
   set_fd_noblock(listen_fd_);
 
-  LOG_INFO("Server port:%d", port_);
+  LOG_INFO("[%s] Server port:%d", LOG_TAG, port_);
   return true;
 }
 
@@ -270,13 +272,13 @@ void Server::deal_new_conn_() {
   socklen_t len = sizeof(addr);
   int fd = accept(listen_fd_, (struct sockaddr*)&addr, &len);
   if (fd < 0) {
-    LOG_ERROR("New connection creation failed");
+    LOG_ERROR("[%s] New connection creation failed", LOG_TAG);
     return;
   }
 
   // 限制最大客户端数量
   if (HttpConn::get_user_count() >= MAX_FD) {
-    LOG_WARN("Server busy!");
+    LOG_WARN("[%s] Server busy!", LOG_TAG);
     send_error_(fd, "Server Busy!");
     return;
   }
@@ -291,11 +293,11 @@ void Server::deal_new_conn_() {
 
   set_fd_noblock(fd);
   mux_->add_fd(fd, conn_events_ | EPOLLIN);
-  LOG_INFO("Client[%d] in!", fd);
+  LOG_INFO("[%s] Client[%d] in!", LOG_TAG, fd);
 }
 
 void Server::deal_close_conn_(HttpConn& client) {
-  LOG_INFO("Client[%d] quit!", client.get_fd());
+  LOG_INFO("[%s] Client[%d] quit!", LOG_TAG, client.get_fd());
   mux_->del_fd(client.get_fd());
   client.close_conn();
 }
@@ -315,7 +317,7 @@ void Server::deal_write_conn_(HttpConn& client) {
 void Server::send_error_(int fd, const string& message) {
   int ret = send(fd, message.data(), message.size(), 0);
   if (ret < 0) {
-    LOG_WARN("send error to client[%d] failed.", fd);
+    LOG_WARN("[%s] send error to client[%d] failed.", LOG_TAG, fd);
   }
   close(fd);
 }
@@ -354,7 +356,7 @@ void Server::on_read_(HttpConn& client) {
       mux_->mod_fd(client.get_fd(), conn_events_ | EPOLLIN);
       return;
     } else {
-      LOG_ERROR("Client[%d] read error with errno:%d", client.get_fd(), errno_);
+      LOG_ERROR("[%s] Client[%d] read error with errno:%d", LOG_TAG, client.get_fd(), errno_);
       deal_close_conn_(client);
       return;
     }
@@ -375,7 +377,7 @@ void Server::on_write_(HttpConn& client) {
       return;
     } else {
       // 其他未知错误
-      LOG_ERROR("Client[%d] write error with errno:%d", client.get_fd(),
+      LOG_ERROR("[%s] Client[%d] write error with errno:%d", LOG_TAG, client.get_fd(),
                 errno_);
       deal_close_conn_(client);
       return;

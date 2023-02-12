@@ -1,5 +1,7 @@
 #include "sql_conn_pool.h"
 
+const static char LOG_TAG[] = "SQL_CONN_POOL";
+
 namespace TimelineServer {
 
 SQLConnPool::SQLConnPool() { MAX_CONN_ = 0; }
@@ -29,7 +31,7 @@ void SQLConnPool::init(const char* host, int port, const char* user,
     sql::Connection* conn = driver->connect(url, user, pwd);
 
     if (conn == nullptr) {
-      LOG_ERROR("MySql init error!");
+      LOG_ERROR("[%s] MySql init error!", LOG_TAG);
     }
 
     // 选定 test 数据库
@@ -41,12 +43,12 @@ void SQLConnPool::init(const char* host, int port, const char* user,
   MAX_CONN_ = max_conn_count;
   sem_init(&sem_id_, 0, MAX_CONN_);
 
-  LOG_INFO("Mysql init successfully");
+  LOG_INFO("[%s] Mysql init successfully", LOG_TAG);
 }
 
 sql::Connection* SQLConnPool::get_connect() {
   if (connections_.empty()) {
-    LOG_WARN("SqlConnPool busy!");
+    LOG_WARN("[%s] SqlConnPool busy!", LOG_TAG);
     return nullptr;
   }
 
