@@ -20,6 +20,25 @@ string token_generator(int length) {
 bool router_login(const HttpRequest& request, Buffer& buffer) {
   Json::object result;
 
+  string temp = request.get_post().dump();
+  LOG_DEBUG("%s", temp.data());
+
+  string user_name = request.query_post("action_info")["user"].string_value();
+  string user_passwd =
+      request.query_post("action_info")["passwd"].string_value();
+
+  // 检查用户名/密码
+  if (user_name.empty() || user_passwd.empty()) {
+    LOG_DEBUG("[%s] Empty Username or Empty Passwd!", LOG_TAG);
+
+    result["action_result"] = false;
+    result["result_info"] = Json::object{{"error_info", "帐号密码错误"}};
+    buffer.write_buffer(((Json)result).dump());
+    LOG_DEBUG("[%s] User[%s] login failed because of wrong password!", LOG_TAG,
+              user_name.data());
+    return true;
+  }
+
   // 创建数据库连接
   TimelineServer::SQLConn conn;
   if (!conn.is_valid()) {
@@ -32,9 +51,7 @@ bool router_login(const HttpRequest& request, Buffer& buffer) {
   std::shared_ptr<sql::PreparedStatement> sql_pstmt(
       conn.connection->prepareStatement(
           "select * from users where user_name=?"));
-  string user_name = request.query_post("action_info")["user"].string_value();
-  string user_passwd =
-      request.query_post("action_info")["passwd"].string_value();
+
   sql_pstmt->setString(1, user_name);
 
   // 查询结果
@@ -54,10 +71,11 @@ bool router_login(const HttpRequest& request, Buffer& buffer) {
     sql_pstmt_create_user->setString(2, user_passwd);
 
     sql_pstmt_create_user->execute();
-    LOG_DEBUG("[%s], User[%s] created successfully!", LOG_TAG, user_name.data());
+    LOG_DEBUG("[%s], User[%s] created successfully!", LOG_TAG,
+              user_name.data());
     // 重新执行查询语句
     sql_result.reset(sql_pstmt->executeQuery());
-    
+
     // if (sql_pstmt_create_user->execute()) {
     //   LOG_DEBUG("User[%s] created successfully!", user_name.data());
     //   // 重新执行查询语句
@@ -116,7 +134,8 @@ bool router_logout(const HttpRequest& request, Buffer& buffer) {
     result["result_info"] = Json::object{{"error_info", "用户未登录"}};
     buffer.write_buffer(((Json)result).dump());
 
-    LOG_DEBUG("[%s] User(action_token:[%s]) logout failed!", LOG_TAG, action_token.data());
+    LOG_DEBUG("[%s] User(action_token:[%s]) logout failed!", LOG_TAG,
+              action_token.data());
     return true;
   }
 
@@ -142,7 +161,8 @@ bool router_query(const HttpRequest& request, Buffer& buffer) {
     result["result_info"] = Json::object{{"error_info", "用户未登录"}};
     buffer.write_buffer(((Json)result).dump());
 
-    LOG_DEBUG("[%s] User(action_token:[%s]) logout failed!",LOG_TAG, action_token.data());
+    LOG_DEBUG("[%s] User(action_token:[%s]) query failed!(not logged in)",
+              LOG_TAG, action_token.data());
     return true;
   }
 
@@ -189,7 +209,8 @@ bool router_add(const HttpRequest& request, Buffer& buffer) {
     result["result_info"] = Json::object{{"error_info", "用户未登录"}};
     buffer.write_buffer(((Json)result).dump());
 
-    LOG_DEBUG("[%s] User(action_token:[%s]) logout failed!", LOG_TAG, action_token.data());
+    LOG_DEBUG("[%s] User(action_token:[%s]) add failed!(not logged in)",
+              LOG_TAG, action_token.data());
     return true;
   }
 
@@ -239,7 +260,8 @@ bool router_update(const HttpRequest& request, Buffer& buffer) {
     result["result_info"] = Json::object{{"error_info", "用户未登录"}};
     buffer.write_buffer(((Json)result).dump());
 
-    LOG_DEBUG("[%s] User(action_token:[%s]) logout failed!", LOG_TAG, action_token.data());
+    LOG_DEBUG("[%s] User(action_token:[%s]) update failed!(not logged in)",
+              LOG_TAG, action_token.data());
     return true;
   }
 
@@ -285,7 +307,8 @@ bool router_delete(const HttpRequest& request, Buffer& buffer) {
     result["result_info"] = Json::object{{"error_info", "用户未登录"}};
     buffer.write_buffer(((Json)result).dump());
 
-    LOG_DEBUG("[%s] User(action_token:[%s]) logout failed!", LOG_TAG, action_token.data());
+    LOG_DEBUG("[%s] User(action_token:[%s]) delete failed!(not logged in)",
+              LOG_TAG, action_token.data());
     return true;
   }
 

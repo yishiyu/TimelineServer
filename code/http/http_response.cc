@@ -79,6 +79,7 @@ void HttpResponse::make_response(const HttpRequest& request, Buffer& buffer) {
     LOG_DEBUG("[%s] Processing dynamic request.", LOG_TAG);
     // 1. 动态路由
     // 调用注册的动态回调函数
+    dynamic_buffer_.clear();
     if (dynamic_router_[file_path_](request, dynamic_buffer_)) {
       // 响应状态码
       response_to_code_();

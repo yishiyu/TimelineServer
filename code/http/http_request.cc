@@ -54,6 +54,11 @@ bool HttpRequest::parse(Buffer& buffer) {
     return false;
   }
 
+  // string temp = buffer.read_all();
+  // buffer.clear();
+  // buffer.write_buffer(temp);
+  // LOG_DEBUG("[%s] %s", LOG_TAG, temp.data());
+
   while (buffer.get_readable_bytes() && state_ != PARSE_STATE::FINISH) {
     string line;
 
@@ -135,7 +140,7 @@ bool HttpRequest::parse_header_(const string& line) {
 }
 
 bool HttpRequest::parse_body_(const string& line) {
-  if (header_["Content-Type"] == "application/json") {
+  if (header_["Content-Type"] == "application/json" || header_["content-type"] == "application/json") {
     // 只解析json格式请求
     string error;
     post_ = Json::parse(line, error);
