@@ -54,6 +54,7 @@ class Server {
   void on_read_(HttpConn& client);
   void on_write_(HttpConn& client);
   void on_progress_(HttpConn& client);
+  void close_conn_(HttpConn& client);
 
   static const int MAX_FD = 65535;
   string src_dir_;

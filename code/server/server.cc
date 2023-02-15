@@ -74,8 +74,8 @@ Server::Server(int port, bool is_ET, int timeout_ms, bool linger_close,
       LOG_INFO("[%s] Triger mode: %s", LOG_TAG, (is_ET_ ? "ET" : "LT"));
       LOG_INFO("[%s] Log level: %s", LOG_TAG, log_level_stirng.data());
       LOG_INFO("[%s] Src dir: %s", LOG_TAG, src_dir_.data());
-      LOG_INFO("[%s] SQL connection pool size: %d, Thread pool size: %d", LOG_TAG,
-               pool_sql_conn_num, pool_thread_num);
+      LOG_INFO("[%s] SQL connection pool size: %d, Thread pool size: %d",
+               LOG_TAG, pool_sql_conn_num, pool_thread_num);
     }
   }
 }
@@ -112,7 +112,8 @@ void Server::start() {
       } else if (event & (EPOLLRDHUP | EPOLLHUP | EPOLLERR)) {
         // 连接断开
         assert(connections_.count(fd) > 0);
-        LOG_DEBUG("[%s] Connection[%d] disconnect event triggered.", LOG_TAG, fd);
+        LOG_DEBUG("[%s] Connection[%d] disconnect event triggered.", LOG_TAG,
+                  fd);
         deal_close_conn_(connections_[fd]);
       } else if (event & EPOLLIN) {
         // 收到数据
@@ -292,7 +293,7 @@ void Server::deal_new_conn_() {
   if (timeout_ms_ > 0) {
     timer_->add_timer(
         fd, timeout_ms_,
-        std::bind(&Server::deal_close_conn_, this, std::ref(connections_[fd])));
+        std::bind(&Server::close_conn_, this, std::ref(connections_[fd])));
   }
 
   set_fd_noblock(fd);
@@ -301,14 +302,7 @@ void Server::deal_new_conn_() {
 }
 
 void Server::deal_close_conn_(HttpConn& client) {
-  if(client.is_closed()){
-    LOG_WARN("[%s] Close a closed connection[%d].", LOG_TAG, client.get_fd());
-    return;
-  }
-  LOG_INFO("[%s] Client[%d] quit!", LOG_TAG, client.get_fd());
-
-  int ret = mux_->del_fd(client.get_fd());
-  client.close_conn();
+  timer_->do_work(client.get_fd());
 }
 
 void Server::deal_read_conn_(HttpConn& client) {
@@ -329,6 +323,16 @@ void Server::send_error_(int fd, const string& message) {
     LOG_WARN("[%s] send error to client[%d] failed.", LOG_TAG, fd);
   }
   close(fd);
+}
+
+void Server::close_conn_(HttpConn& client) {
+  if (client.is_closed()) {
+    LOG_WARN("[%s] Close a closed connection[%d].", LOG_TAG, client.get_fd());
+    return;
+  }
+
+  int ret = mux_->del_fd(client.get_fd());
+  client.close_conn();
 }
 
 void Server::extent_time_(HttpConn& client) {
@@ -356,7 +360,7 @@ void Server::set_fd_noblock(int fd) {
 }
 
 void Server::on_read_(HttpConn& client) {
-  if (client.is_closed()){
+  if (client.is_closed()) {
     LOG_WARN("[%s] Read a closed connection[%d].", LOG_TAG, client.get_fd());
     return;
   }
@@ -372,7 +376,8 @@ void Server::on_read_(HttpConn& client) {
       mux_->mod_fd(client.get_fd(), conn_events_ | EPOLLIN);
       return;
     } else {
-      LOG_ERROR("[%s] Client[%d] read error with errno:%d(connection closed)", LOG_TAG, client.get_fd(), errno_);
+      LOG_ERROR("[%s] Client[%d] read error with errno:%d(connection closed)",
+                LOG_TAG, client.get_fd(), errno_);
       deal_close_conn_(client);
       return;
     }
@@ -383,8 +388,9 @@ void Server::on_read_(HttpConn& client) {
 }
 
 void Server::on_write_(HttpConn& client) {
-  if (client.is_closed()){
-    LOG_WARN("[%s] Write to a closed connection[%d].", LOG_TAG, client.get_fd());
+  if (client.is_closed()) {
+    LOG_WARN("[%s] Write to a closed connection[%d].", LOG_TAG,
+             client.get_fd());
     return;
   }
 
@@ -401,8 +407,8 @@ void Server::on_write_(HttpConn& client) {
       return;
     } else {
       // 其他未知错误
-      LOG_ERROR("[%s] Client[%d] write error with errno:%d(connection closed)", LOG_TAG, client.get_fd(),
-                errno_);
+      LOG_ERROR("[%s] Client[%d] write error with errno:%d(connection closed)",
+                LOG_TAG, client.get_fd(), errno_);
       deal_close_conn_(client);
       return;
     }
@@ -413,13 +419,13 @@ void Server::on_write_(HttpConn& client) {
   // if (client.is_keep_alive()) {
   //   mux_->mod_fd(client.get_fd(), conn_events_ | EPOLLIN);
   // } else {
-  //   LOG_INFO("[%s] Close connection[%d] after write!", LOG_TAG, client.get_fd());
-  //   deal_close_conn_(client);
+  //   LOG_INFO("[%s] Close connection[%d] after write!", LOG_TAG,
+  //   client.get_fd()); deal_close_conn_(client);
   // }
 }
 
 void Server::on_progress_(HttpConn& client) {
-  if (client.is_closed()){
+  if (client.is_closed()) {
     LOG_WARN("[%s] Process a closed connection[%d].", LOG_TAG, client.get_fd());
     return;
   }
