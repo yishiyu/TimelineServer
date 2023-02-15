@@ -134,6 +134,10 @@ bool HttpConn::process() {
     iov_[1].iov_base = response_.get_file();
     iov_[1].iov_len = response_.get_file_size();
     iov_count_ = 2;
+  }else{
+    iov_[1].iov_base = nullptr;
+    iov_[1].iov_len = 0;
+    iov_count_ = 1;
   }
 
   LOG_DEBUG("[%s] filesize:%d, response size:%d", LOG_TAG, response_.get_file_size(),

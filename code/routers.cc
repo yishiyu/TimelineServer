@@ -191,8 +191,7 @@ bool router_query(const HttpRequest& request, Buffer& buffer) {
   }
 
   result["action_result"] = true;
-  result["result_info"] =
-      Json::object{{"result_info", Json::object{{"tasks", Json(tasks)}}}};
+  result["result_info"] = Json::object{{"tasks", Json(tasks)}};
   buffer.write_buffer(((Json)result).dump());
 
   LOG_DEBUG("[%s] User[id:%d] query successfully!", LOG_TAG, user_id);
