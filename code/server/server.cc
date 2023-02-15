@@ -114,13 +114,13 @@ void Server::start() {
         assert(connections_.count(fd) > 0);
         LOG_DEBUG("[%s] Connection[%d] disconnect event triggered.", LOG_TAG,
                   fd);
-        deal_close_conn_(connections_[fd]);
+        deal_close_conn_(&connections_[fd]);
       } else if (event & EPOLLIN) {
         // 收到数据
-        deal_read_conn_(connections_[fd]);
+        deal_read_conn_(&connections_[fd]);
       } else if (event & EPOLLOUT) {
         // 发送数据
-        deal_write_conn_(connections_[fd]);
+        deal_write_conn_(&connections_[fd]);
       } else {
         LOG_WARN("[%s] Unexpected event: %d!", LOG_TAG, event);
       }
@@ -291,9 +291,8 @@ void Server::deal_new_conn_() {
   // 成功建立连接,将新连接加入管理列表
   connections_[fd].init(fd, addr);
   if (timeout_ms_ > 0) {
-    timer_->add_timer(
-        fd, timeout_ms_,
-        std::bind(&Server::close_conn_, this, std::ref(connections_[fd])));
+    timer_->add_timer(fd, timeout_ms_,
+                      std::bind(&Server::close_conn_, this, &connections_[fd]));
   }
 
   set_fd_noblock(fd);
@@ -301,20 +300,20 @@ void Server::deal_new_conn_() {
   LOG_INFO("[%s] Client[%d] in!", LOG_TAG, fd);
 }
 
-void Server::deal_close_conn_(HttpConn& client) {
-  timer_->do_work(client.get_fd());
+void Server::deal_close_conn_(HttpConn* client) {
+  timer_->do_work(client->get_fd());
 }
 
-void Server::deal_read_conn_(HttpConn& client) {
+void Server::deal_read_conn_(HttpConn* client) {
   // 交给线程池异步处理
   extent_time_(client);
-  thread_pool_->add_task(std::bind(&Server::on_read_, this, std::ref(client)));
+  thread_pool_->add_task(std::bind(&Server::on_read_, this, client));
 }
 
-void Server::deal_write_conn_(HttpConn& client) {
+void Server::deal_write_conn_(HttpConn* client) {
   // 交给线程池异步处理
   extent_time_(client);
-  thread_pool_->add_task(std::bind(&Server::on_write_, this, std::ref(client)));
+  thread_pool_->add_task(std::bind(&Server::on_write_, this, client));
 }
 
 void Server::send_error_(int fd, const string& message) {
@@ -325,19 +324,25 @@ void Server::send_error_(int fd, const string& message) {
   close(fd);
 }
 
-void Server::close_conn_(HttpConn& client) {
-  if (client.is_closed()) {
-    LOG_WARN("[%s] Close a closed connection[%d].", LOG_TAG, client.get_fd());
+void Server::close_conn_(HttpConn* client) {
+  if (client->is_closed()) {
+    LOG_WARN("[%s] Close a closed connection[%d].", LOG_TAG, client->get_fd());
     return;
   }
 
-  int ret = mux_->del_fd(client.get_fd());
-  client.close_conn();
+  int ret = mux_->del_fd(client->get_fd());
+  client->close_conn();
 }
 
-void Server::extent_time_(HttpConn& client) {
+void Server::extent_time_(HttpConn* client) {
+  if (client->is_closed()) {
+    LOG_WARN("[%s] Try to extend time for a closed connection[%d].", LOG_TAG,
+             client->get_fd());
+    return;
+  }
+
   if (timeout_ms_ > 0) {
-    timer_->adjust(client.get_fd(), timeout_ms_);
+    timer_->adjust(client->get_fd(), timeout_ms_);
   }
 }
 
@@ -359,25 +364,25 @@ void Server::set_fd_noblock(int fd) {
   fcntl(fd, F_SETFL, fcntl(fd, F_GETFD, NULL) | O_NONBLOCK);
 }
 
-void Server::on_read_(HttpConn& client) {
-  if (client.is_closed()) {
-    LOG_WARN("[%s] Read a closed connection[%d].", LOG_TAG, client.get_fd());
+void Server::on_read_(HttpConn* client) {
+  if (client->is_closed()) {
+    LOG_WARN("[%s] Read a closed connection[%d].", LOG_TAG, client->get_fd());
     return;
   }
 
-  LOG_DEBUG("[%s] On read request[%d].", LOG_TAG, client.get_fd());
+  LOG_DEBUG("[%s] On read request[%d].", LOG_TAG, client->get_fd());
 
   int errno_;
-  int ret = client.read(&errno_);
+  int ret = client->read(&errno_);
   if (ret < 0) {
     // 最后一般是 ret = 0
     if (errno_ == EAGAIN) {
       // 暂时不可读,等待机会再读
-      mux_->mod_fd(client.get_fd(), conn_events_ | EPOLLIN);
+      mux_->mod_fd(client->get_fd(), conn_events_ | EPOLLIN);
       return;
     } else {
       LOG_ERROR("[%s] Client[%d] read error with errno:%d(connection closed)",
-                LOG_TAG, client.get_fd(), errno_);
+                LOG_TAG, client->get_fd(), errno_);
       deal_close_conn_(client);
       return;
     }
@@ -387,57 +392,63 @@ void Server::on_read_(HttpConn& client) {
   on_progress_(client);
 }
 
-void Server::on_write_(HttpConn& client) {
-  if (client.is_closed()) {
+void Server::on_write_(HttpConn* client) {
+  if (client->is_closed()) {
     LOG_WARN("[%s] Write to a closed connection[%d].", LOG_TAG,
-             client.get_fd());
+             client->get_fd());
     return;
   }
 
-  LOG_DEBUG("[%s] On write request[%d].", LOG_TAG, client.get_fd());
+  LOG_DEBUG("[%s] On write request[%d].", LOG_TAG, client->get_fd());
 
   int errno_;
-  int ret = client.write(&errno_);
+  int ret = client->write(&errno_);
   if (ret < 0) {
     // 最后一般是 ret = 0
     if (errno_ == EAGAIN) {
       // 暂时不可写,等待机会再写
-      LOG_DEBUG("[%s] Fd[%d] delay to write.", LOG_TAG, client.get_fd());
-      mux_->mod_fd(client.get_fd(), conn_events_ | EPOLLOUT);
+      LOG_DEBUG("[%s] Fd[%d] delay to write.", LOG_TAG, client->get_fd());
+      mux_->mod_fd(client->get_fd(), conn_events_ | EPOLLOUT);
       return;
     } else {
       // 其他未知错误
       LOG_ERROR("[%s] Client[%d] write error with errno:%d(connection closed)",
-                LOG_TAG, client.get_fd(), errno_);
+                LOG_TAG, client->get_fd(), errno_);
       deal_close_conn_(client);
       return;
     }
   }
 
+  LOG_DEBUG("[%s] Write request successfully![%d].", LOG_TAG, client->get_fd());
+
+  // deal_close_conn_(client);
   // 传输完成
-  mux_->mod_fd(client.get_fd(), conn_events_ | EPOLLIN);
-  // if (client.is_keep_alive()) {
-  //   mux_->mod_fd(client.get_fd(), conn_events_ | EPOLLIN);
+  mux_->mod_fd(client->get_fd(), conn_events_);
+  // if (client->is_keep_alive()) {
+  //   mux_->mod_fd(client->get_fd(), conn_events_ | EPOLLIN);
   // } else {
   //   LOG_INFO("[%s] Close connection[%d] after write!", LOG_TAG,
-  //   client.get_fd()); deal_close_conn_(client);
+  //            client->get_fd());
+  //   deal_close_conn_(client);
   // }
 }
 
-void Server::on_progress_(HttpConn& client) {
-  if (client.is_closed()) {
-    LOG_WARN("[%s] Process a closed connection[%d].", LOG_TAG, client.get_fd());
+void Server::on_progress_(HttpConn* client) {
+  if (client->is_closed()) {
+    LOG_WARN("[%s] Process a closed connection[%d].", LOG_TAG,
+             client->get_fd());
     return;
   }
 
-  LOG_DEBUG("[%s] On progress request[%d].", LOG_TAG, client.get_fd());
+  LOG_DEBUG("[%s] On progress request[%d].", LOG_TAG, client->get_fd());
 
-  if (client.process()) {
+  if (client->process()) {
     // 处理报文成功,等待可写时回复
-    mux_->mod_fd(client.get_fd(), conn_events_ | EPOLLOUT);
+    mux_->mod_fd(client->get_fd(), conn_events_ | EPOLLOUT);
   } else {
     // 处理失败,等待重新接收报文
-    mux_->mod_fd(client.get_fd(), conn_events_ | EPOLLIN);
+    LOG_DEBUG("[%s] Error while progressing!", LOG_TAG);
+    mux_->mod_fd(client->get_fd(), conn_events_ | EPOLLIN);
   }
 }
 

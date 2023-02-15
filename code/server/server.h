@@ -41,20 +41,20 @@ class Server {
 
   // 处理事件函数
   void deal_new_conn_();
-  void deal_close_conn_(HttpConn& client);
-  void deal_read_conn_(HttpConn& client);
-  void deal_write_conn_(HttpConn& client);
+  void deal_close_conn_(HttpConn* client);
+  void deal_read_conn_(HttpConn* client);
+  void deal_write_conn_(HttpConn* client);
 
   // 工具函数
   void send_error_(int fd, const string& message);
-  void extent_time_(HttpConn& client);
+  void extent_time_(HttpConn* client);
   void set_fd_noblock(int fd);
 
   // 回调函数(实际工作函数)
-  void on_read_(HttpConn& client);
-  void on_write_(HttpConn& client);
-  void on_progress_(HttpConn& client);
-  void close_conn_(HttpConn& client);
+  void on_read_(HttpConn* client);
+  void on_write_(HttpConn* client);
+  void on_progress_(HttpConn* client);
+  void close_conn_(HttpConn* client);
 
   static const int MAX_FD = 65535;
   string src_dir_;
