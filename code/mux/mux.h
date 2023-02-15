@@ -3,6 +3,7 @@
 #include <assert.h>
 #include <sys/epoll.h>
 #include <unistd.h>
+#include "log/log.h"
 
 #include <vector>
 

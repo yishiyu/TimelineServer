@@ -20,9 +20,6 @@ string token_generator(int length) {
 bool router_login(const HttpRequest& request, Buffer& buffer) {
   Json::object result;
 
-  string temp = request.get_post().dump();
-  LOG_DEBUG("%s", temp.data());
-
   string user_name = request.query_post("action_info")["user"].string_value();
   string user_passwd =
       request.query_post("action_info")["passwd"].string_value();

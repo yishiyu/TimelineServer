@@ -1,5 +1,7 @@
 #include "mux.h"
 
+const static char LOG_TAG[] = "MUX";
+
 namespace TimelineServer {
 
 Mux::Mux(int max_event) : mux_fd_(epoll_create(max_event)), events_(max_event) {
@@ -34,6 +36,7 @@ bool Mux::mod_fd(int fd, uint32_t events) {
 
 bool Mux::del_fd(int fd) {
   if (fd < 0) {
+    LOG_WARN("[%s] Delete a negative fd[%d]!", LOG_TAG, fd);
     return false;
   }
 

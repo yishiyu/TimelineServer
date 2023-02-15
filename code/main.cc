@@ -2,7 +2,7 @@
 #include "server/server.h"
 
 int main() {
-  TimelineServer::Server server(2345 , true, 10000, true, "../", "localhost",
+  TimelineServer::Server server(2345, true, 10000, true, "../", "localhost",
                                 3306, "root", "explosion", "timelineserver", 8,
                                 8, TimelineServer::LOG_LEVEL::ELL_DEBUG, 0);
 

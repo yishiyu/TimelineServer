@@ -103,6 +103,9 @@ void Server::start() {
     for (int i = 0; i < events_count_; i++) {
       int fd = mux_->get_active_fd(i);
       uint32_t event = mux_->get_active_events(i);
+
+      LOG_DEBUG("[%s] FD:[%d] \t EVENT:[%d]", LOG_TAG, fd, event);
+
       if (fd == listen_fd_) {
         // 有新连接
         deal_new_conn_();
@@ -358,6 +361,8 @@ void Server::on_read_(HttpConn& client) {
     return;
   }
 
+  LOG_DEBUG("[%s] On read request[%d].", LOG_TAG, client.get_fd());
+
   int errno_;
   int ret = client.read(&errno_);
   if (ret < 0) {
@@ -367,7 +372,7 @@ void Server::on_read_(HttpConn& client) {
       mux_->mod_fd(client.get_fd(), conn_events_ | EPOLLIN);
       return;
     } else {
-      LOG_ERROR("[%s] Client[%d] read error with errno:%d", LOG_TAG, client.get_fd(), errno_);
+      LOG_ERROR("[%s] Client[%d] read error with errno:%d(connection closed)", LOG_TAG, client.get_fd(), errno_);
       deal_close_conn_(client);
       return;
     }
@@ -383,17 +388,20 @@ void Server::on_write_(HttpConn& client) {
     return;
   }
 
+  LOG_DEBUG("[%s] On write request[%d].", LOG_TAG, client.get_fd());
+
   int errno_;
   int ret = client.write(&errno_);
   if (ret < 0) {
     // 最后一般是 ret = 0
     if (errno_ == EAGAIN) {
       // 暂时不可写,等待机会再写
+      LOG_DEBUG("[%s] Fd[%d] delay to write.", LOG_TAG, client.get_fd());
       mux_->mod_fd(client.get_fd(), conn_events_ | EPOLLOUT);
       return;
     } else {
       // 其他未知错误
-      LOG_ERROR("[%s] Client[%d] write error with errno:%d", LOG_TAG, client.get_fd(),
+      LOG_ERROR("[%s] Client[%d] write error with errno:%d(connection closed)", LOG_TAG, client.get_fd(),
                 errno_);
       deal_close_conn_(client);
       return;
@@ -401,11 +409,13 @@ void Server::on_write_(HttpConn& client) {
   }
 
   // 传输完成
-  if (client.is_keep_alive()) {
-    mux_->mod_fd(client.get_fd(), conn_events_ | EPOLLIN);
-  } else {
-    deal_close_conn_(client);
-  }
+  mux_->mod_fd(client.get_fd(), conn_events_ | EPOLLIN);
+  // if (client.is_keep_alive()) {
+  //   mux_->mod_fd(client.get_fd(), conn_events_ | EPOLLIN);
+  // } else {
+  //   LOG_INFO("[%s] Close connection[%d] after write!", LOG_TAG, client.get_fd());
+  //   deal_close_conn_(client);
+  // }
 }
 
 void Server::on_progress_(HttpConn& client) {
@@ -413,6 +423,8 @@ void Server::on_progress_(HttpConn& client) {
     LOG_WARN("[%s] Process a closed connection[%d].", LOG_TAG, client.get_fd());
     return;
   }
+
+  LOG_DEBUG("[%s] On progress request[%d].", LOG_TAG, client.get_fd());
 
   if (client.process()) {
     // 处理报文成功,等待可写时回复
