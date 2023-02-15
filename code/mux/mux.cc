@@ -52,6 +52,9 @@ int Mux::wait(int timeout) {
   // becomes ready, it will cause the epoll_wait() call to unblock. 
   events_count_ = epoll_wait(mux_fd_, &events_[0],
                              static_cast<int>(events_.size()), timeout);
+  if (events_count_<0){
+    LOG_ERROR("[%s] epoll_wait error with errno:[%d]", LOG_TAG, errno);
+  }
   return events_count_;
 }
 

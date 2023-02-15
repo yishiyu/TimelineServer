@@ -69,7 +69,6 @@ class Server {
   uint32_t listen_events_;
   uint32_t conn_events_;
   
-  std::mutex timer_mtx_;
   std::unique_ptr<Timer> timer_;
   std::unique_ptr<ThreadPool> thread_pool_;
   std::unique_ptr<Mux> mux_;

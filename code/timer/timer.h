@@ -6,6 +6,7 @@
 #include <functional>
 #include <unordered_map>
 #include <vector>
+#include <mutex>
 
 #include "log/log.h"
 
@@ -52,6 +53,7 @@ class Timer {
   void swap_(size_t i, size_t j);
 
   // 小顶堆,0下标对应最小元素
+  std::mutex mtx_;
   std::vector<TimerNode> heap_;
   std::unordered_map<timer_id, size_t> timer_ref_;
 };

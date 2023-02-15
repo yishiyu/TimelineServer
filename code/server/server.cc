@@ -97,7 +97,6 @@ void Server::start() {
   while (!is_close_) {
     if (timeout_ms_ > 0) {
       // get_next_timeout 函数内会执行 tick
-      std::lock_guard<std::mutex> lock(timer_mtx_);
       ttnt_ms = timer_->get_next_timeout();
     }
     int events_count_ = mux_->wait(ttnt_ms);
@@ -110,7 +109,8 @@ void Server::start() {
       if (fd == listen_fd_) {
         // 有新连接
         deal_new_conn_();
-      } else if (event & (EPOLLRDHUP | EPOLLHUP | EPOLLERR)) {
+        // EPOLLRDHUP | 
+      } else if (event & (EPOLLHUP | EPOLLERR)) {
         // 连接断开
         assert(connections_.count(fd) > 0);
         LOG_DEBUG("[%s] Connection[%d] disconnect event triggered.", LOG_TAG,
@@ -292,7 +292,6 @@ void Server::deal_new_conn_() {
   // 成功建立连接,将新连接加入管理列表
   connections_[fd].init(fd, addr);
   if (timeout_ms_ > 0) {
-    std::lock_guard<std::mutex> lock(timer_mtx_);
     timer_->add_timer(fd, timeout_ms_,
                       std::bind(&Server::close_conn_, this, &connections_[fd]));
   }
@@ -303,7 +302,6 @@ void Server::deal_new_conn_() {
 }
 
 void Server::deal_close_conn_(HttpConn* client) {
-  std::lock_guard<std::mutex> lock(timer_mtx_);
   timer_->do_work(client->get_fd());
 }
 
@@ -345,7 +343,6 @@ void Server::extent_time_(HttpConn* client) {
   }
 
   if (timeout_ms_ > 0) {
-    std::lock_guard<std::mutex> lock(timer_mtx_);
     timer_->adjust(client->get_fd(), timeout_ms_);
   }
 }
