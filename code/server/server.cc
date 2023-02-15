@@ -97,6 +97,7 @@ void Server::start() {
   while (!is_close_) {
     if (timeout_ms_ > 0) {
       // get_next_timeout 函数内会执行 tick
+      std::lock_guard<std::mutex> lock(timer_mtx_);
       ttnt_ms = timer_->get_next_timeout();
     }
     int events_count_ = mux_->wait(ttnt_ms);
@@ -291,6 +292,7 @@ void Server::deal_new_conn_() {
   // 成功建立连接,将新连接加入管理列表
   connections_[fd].init(fd, addr);
   if (timeout_ms_ > 0) {
+    std::lock_guard<std::mutex> lock(timer_mtx_);
     timer_->add_timer(fd, timeout_ms_,
                       std::bind(&Server::close_conn_, this, &connections_[fd]));
   }
@@ -301,6 +303,7 @@ void Server::deal_new_conn_() {
 }
 
 void Server::deal_close_conn_(HttpConn* client) {
+  std::lock_guard<std::mutex> lock(timer_mtx_);
   timer_->do_work(client->get_fd());
 }
 
@@ -342,6 +345,7 @@ void Server::extent_time_(HttpConn* client) {
   }
 
   if (timeout_ms_ > 0) {
+    std::lock_guard<std::mutex> lock(timer_mtx_);
     timer_->adjust(client->get_fd(), timeout_ms_);
   }
 }
@@ -421,9 +425,9 @@ void Server::on_write_(HttpConn* client) {
 
   LOG_DEBUG("[%s] Write request successfully![%d].", LOG_TAG, client->get_fd());
 
-  // deal_close_conn_(client);
+  deal_close_conn_(client);
   // 传输完成
-  mux_->mod_fd(client->get_fd(), conn_events_);
+  // mux_->mod_fd(client->get_fd(), conn_events_);
   // if (client->is_keep_alive()) {
   //   mux_->mod_fd(client->get_fd(), conn_events_ | EPOLLIN);
   // } else {

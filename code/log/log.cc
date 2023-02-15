@@ -19,8 +19,8 @@ void Log::init(LOG_LEVEL level, const char* path, const char* suffix,
   }
 
   line_count_ = 0;
-  path_ = path;
-  suffix_ = suffix;
+  path_ = string(path);
+  suffix_ = string(suffix);
 
   // 获取时间
   time_t timestamp = time(nullptr);
@@ -30,8 +30,8 @@ void Log::init(LOG_LEVEL level, const char* path, const char* suffix,
   day_of_month_ = t.tm_mday;
 
   char file_name[LOG_NAME_LEN] = {0};
-  snprintf(file_name, LOG_NAME_LEN - 1, "%s/%04d_%02d_%02d-0%s", path_,
-           t.tm_year + 1900, t.tm_mon + 1, t.tm_mday, suffix_);
+  snprintf(file_name, LOG_NAME_LEN - 1, "%s/%04d_%02d_%02d-0%s", path_.data(),
+           t.tm_year + 1900, t.tm_mon + 1, t.tm_mday, suffix_.data());
 
   {
     std::lock_guard<std::mutex> locker(fp_mtx_);
@@ -43,7 +43,7 @@ void Log::init(LOG_LEVEL level, const char* path, const char* suffix,
     fp_ = fopen(file_name, "a");
     if (fp_ == nullptr) {
       // 权限全开
-      mkdir(path_, 0777);
+      mkdir(path_.data(), 0777);
       fp_ = fopen(file_name, "a");
     }
 
@@ -77,14 +77,14 @@ void Log::write_buffer(LOG_LEVEL level, const char* format, ...) {
 
     if (day_of_month_ != t.tm_mday) {
       // 因为日期更换日志文件
-      snprintf(new_file, LOG_NAME_LEN - 72, "%s/%s-0%s", path_, tail, suffix_);
+      snprintf(new_file, LOG_NAME_LEN - 72, "%s/%s-0%s", path_.data(), tail, suffix_.data());
       day_of_month_ = t.tm_mday;
       line_count_ = 0;
 
     } else {
       // 因为行数超限更换文件
-      snprintf(new_file, LOG_NAME_LEN - 72, "%s/%s-%d%s", path_, tail,
-               (line_count_ / MAX_LINES), suffix_);
+      snprintf(new_file, LOG_NAME_LEN - 72, "%s/%s-%d%s", path_.data(), tail,
+               (line_count_ / MAX_LINES), suffix_.data());
     }
 
     flush();

@@ -48,8 +48,8 @@ class Log {
   void async_write();
   void log_message_level(LOG_LEVEL level);
 
-  const char* path_;
-  const char* suffix_;
+  string path_;
+  string suffix_;
 
   int line_count_;
   int day_of_month_;
