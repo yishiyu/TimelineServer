@@ -5,7 +5,7 @@ const static char LOG_TAG[] = "TIMER";
 namespace TimelineServer {
 
 void Timer::add_timer(timer_id id, int timeout, const timeout_cb& call_back) {
-  std::lock_guard<std::mutex> lock(mtx_);
+  
   assert(id >= 0);
   size_t i;
 
@@ -29,14 +29,14 @@ void Timer::add_timer(timer_id id, int timeout, const timeout_cb& call_back) {
 }
 
 void Timer::pop_timer() {
-  std::lock_guard<std::mutex> lock(mtx_);
+  
 
   assert(!heap_.empty());
   delete_(0);
 }
 
 void Timer::do_work(timer_id id) {
-  std::lock_guard<std::mutex> lock(mtx_);
+  
 
   if (heap_.empty() || timer_ref_.count(id) == 0) {
     return;
@@ -49,7 +49,7 @@ void Timer::do_work(timer_id id) {
 }
 
 void Timer::adjust(timer_id id, int timeout) {
-  std::lock_guard<std::mutex> lock(mtx_);
+  
 
   // 保证该元素存在
   assert(!heap_.empty() && timer_ref_.count(id) > 0);
@@ -63,7 +63,7 @@ void Timer::adjust(timer_id id, int timeout) {
 }
 
 void Timer::clear() {
-  std::lock_guard<std::mutex> lock(mtx_);
+  
 
   LOG_DEBUG("[%s] timers are cleared up.", LOG_TAG);
   timer_ref_.clear();
@@ -71,7 +71,7 @@ void Timer::clear() {
 }
 
 void Timer::tick() {
-  std::lock_guard<std::mutex> lock(mtx_);
+  
   
   if (heap_.empty()) {
     return;
@@ -87,14 +87,14 @@ void Timer::tick() {
     // 触发该定时器
     LOG_DEBUG("[%s] timer[%d] triggerd.", LOG_TAG, node.id);
     node.cb();
-      delete_(0);
+    delete_(0);
   }
 }
 
 int Timer::get_next_timeout() {
   tick();
 
-  std::lock_guard<std::mutex> lock(mtx_);
+  
   size_t res = -1;
   if (!heap_.empty()) {
     auto expires = heap_.front().expires;

@@ -191,7 +191,7 @@ void HttpResponse::add_content_(Buffer& buff) {
 
   int* mm_file =
       (int*)mmap(nullptr, mm_file_stat_.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
-  if (*mm_file == -1) {
+  if (mm_file == MAP_FAILED) {
     add_error_content(buff, "File Not Found.");
     LOG_DEBUG("[%s] File \"%s\" not found.", LOG_TAG, (src_dir_ + file_path_).data());
     return;

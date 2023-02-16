@@ -97,6 +97,7 @@ void Server::start() {
   while (!is_close_) {
     if (timeout_ms_ > 0) {
       // get_next_timeout 函数内会执行 tick
+      lock_guard<mutex> time_lock(timer_mtx_);
       ttnt_ms = timer_->get_next_timeout();
     }
     int events_count_ = mux_->wait(ttnt_ms);
@@ -298,6 +299,7 @@ void Server::deal_new_conn_() {
     lock_guard<mutex> lock(connections_[fd].mtx_);
     connections_[fd].init(fd, addr);
     if (timeout_ms_ > 0) {
+      lock_guard<mutex> time_lock(timer_mtx_);
       timer_->add_timer(
           fd, timeout_ms_,
           std::bind(&Server::close_conn_, this, &connections_[fd]));
@@ -310,6 +312,7 @@ void Server::deal_new_conn_() {
 }
 
 void Server::deal_close_conn_(HttpConn* client) {
+  lock_guard<mutex> time_lock(timer_mtx_);
   timer_->do_work(client->get_fd());
 }
 
@@ -334,7 +337,7 @@ void Server::send_error_(int fd, const string& message) {
 }
 
 void Server::close_conn_(HttpConn* client) {
-  lock_guard<mutex> lock(client->mtx_);
+  lock_guard<mutex> fd_lock(client->mtx_);
   if (client->is_closed()) {
     LOG_WARN("[%s] Close a closed connection[%d].", LOG_TAG, client->get_fd());
     return;
@@ -345,7 +348,8 @@ void Server::close_conn_(HttpConn* client) {
 }
 
 void Server::extent_time_(HttpConn* client) {
-  lock_guard<mutex> lock(client->mtx_);
+  lock_guard<mutex> time_lock(timer_mtx_);
+  lock_guard<mutex> fd_lock(client->mtx_);
   if (client->is_closed()) {
     LOG_WARN("[%s] Try to extend time for a closed connection[%d].", LOG_TAG,
              client->get_fd());
