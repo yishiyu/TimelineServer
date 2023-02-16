@@ -53,7 +53,7 @@ class Server {
   // 回调函数(实际工作函数)
   void on_read_(HttpConn* client);
   void on_write_(HttpConn* client);
-  void on_progress_(HttpConn* client);
+  void on_process_(HttpConn* client);
   void close_conn_(HttpConn* client);
 
   static const int MAX_FD = 65535;

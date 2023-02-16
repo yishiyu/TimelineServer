@@ -109,8 +109,7 @@ void Server::start() {
       if (fd == listen_fd_) {
         // 有新连接
         deal_new_conn_();
-        // EPOLLRDHUP | 
-      } else if (event & (EPOLLHUP | EPOLLERR)) {
+      } else if (event & (EPOLLRDHUP | EPOLLHUP | EPOLLERR)) {
         // 连接断开
         assert(connections_.count(fd) > 0);
         LOG_DEBUG("[%s] Connection[%d] disconnect event triggered.", LOG_TAG,
@@ -276,29 +275,33 @@ bool Server::init_quit_signal_() {
 void Server::deal_new_conn_() {
   struct sockaddr_in addr;
   socklen_t len = sizeof(addr);
-  int fd = accept(listen_fd_, (struct sockaddr*)&addr, &len);
-  if (fd < 0) {
-    LOG_ERROR("[%s] New connection creation failed", LOG_TAG);
-    return;
-  }
+  do {
+    int fd = accept(listen_fd_, (struct sockaddr*)&addr, &len);
+    if (fd < 0) {
+      LOG_ERROR("[%s] New connection creation failed with errno:[%d]", LOG_TAG,
+                errno);
+      return;
+    }
 
-  // 限制最大客户端数量
-  if (HttpConn::get_user_count() >= MAX_FD) {
-    LOG_WARN("[%s] Server busy!", LOG_TAG);
-    send_error_(fd, "Server Busy!");
-    return;
-  }
+    // 限制最大客户端数量
+    if (HttpConn::get_user_count() >= MAX_FD) {
+      LOG_WARN("[%s] Server busy!", LOG_TAG);
+      send_error_(fd, "Server Busy!");
+      return;
+    }
 
-  // 成功建立连接,将新连接加入管理列表
-  connections_[fd].init(fd, addr);
-  if (timeout_ms_ > 0) {
-    timer_->add_timer(fd, timeout_ms_,
-                      std::bind(&Server::close_conn_, this, &connections_[fd]));
-  }
+    // 成功建立连接,将新连接加入管理列表
+    connections_[fd].init(fd, addr);
+    if (timeout_ms_ > 0) {
+      timer_->add_timer(
+          fd, timeout_ms_,
+          std::bind(&Server::close_conn_, this, &connections_[fd]));
+    }
 
-  set_fd_noblock(fd);
-  mux_->add_fd(fd, conn_events_ | EPOLLIN);
-  LOG_INFO("[%s] Client[%d] in!", LOG_TAG, fd);
+    set_fd_noblock(fd);
+    mux_->add_fd(fd, conn_events_ | EPOLLIN);
+    LOG_INFO("[%s] Client[%d] in!", LOG_TAG, fd);
+  } while (true);
 }
 
 void Server::deal_close_conn_(HttpConn* client) {
@@ -375,22 +378,15 @@ void Server::on_read_(HttpConn* client) {
 
   int errno_;
   int ret = client->read(&errno_);
-  if (ret < 0) {
-    // 最后一般是 ret = 0
-    if (errno_ == EAGAIN) {
-      // 暂时不可读,等待机会再读
-      mux_->mod_fd(client->get_fd(), conn_events_ | EPOLLIN);
-      return;
-    } else {
-      LOG_ERROR("[%s] Client[%d] read error with errno:%d(connection closed)",
-                LOG_TAG, client->get_fd(), errno_);
-      deal_close_conn_(client);
-      return;
-    }
+  if (ret < 0 && errno_ != EAGAIN) {
+    LOG_ERROR("[%s] Client[%d] read error with errno:%d(connection closed)",
+              LOG_TAG, client->get_fd(), errno_);
+    deal_close_conn_(client);
+    return;
   }
 
   // 在同一线程中继续处理报文
-  on_progress_(client);
+  on_process_(client);
 }
 
 void Server::on_write_(HttpConn* client) {
@@ -404,23 +400,23 @@ void Server::on_write_(HttpConn* client) {
 
   int errno_;
   int ret = client->write(&errno_);
-  if (ret < 0) {
-    // 最后一般是 ret = 0
+  if (client->get_writable_bytes() == 0) {
+    // 传输完成
+    // on_process_(client);
+    LOG_DEBUG("[%s] Write request successfully![%d].", LOG_TAG,
+              client->get_fd());
+
+    deal_close_conn_(client);
+  } else if (ret < 0) {
     if (errno_ == EAGAIN) {
       // 暂时不可写,等待机会再写
       LOG_DEBUG("[%s] Fd[%d] delay to write.", LOG_TAG, client->get_fd());
       mux_->mod_fd(client->get_fd(), conn_events_ | EPOLLOUT);
       return;
-    } else {
-      // 其他未知错误
-      LOG_ERROR("[%s] Client[%d] write error with errno:%d(connection closed)",
-                LOG_TAG, client->get_fd(), errno_);
-      deal_close_conn_(client);
-      return;
     }
   }
 
-  LOG_DEBUG("[%s] Write request successfully![%d].", LOG_TAG, client->get_fd());
+  LOG_DEBUG("[%s] Write request failed![%d].", LOG_TAG, client->get_fd());
 
   deal_close_conn_(client);
   // 传输完成
@@ -434,21 +430,21 @@ void Server::on_write_(HttpConn* client) {
   // }
 }
 
-void Server::on_progress_(HttpConn* client) {
+void Server::on_process_(HttpConn* client) {
   if (client->is_closed()) {
     LOG_WARN("[%s] Process a closed connection[%d].", LOG_TAG,
              client->get_fd());
     return;
   }
 
-  LOG_DEBUG("[%s] On progress request[%d].", LOG_TAG, client->get_fd());
+  LOG_DEBUG("[%s] On process request[%d].", LOG_TAG, client->get_fd());
 
   if (client->process()) {
     // 处理报文成功,等待可写时回复
     mux_->mod_fd(client->get_fd(), conn_events_ | EPOLLOUT);
   } else {
     // 处理失败,等待重新接收报文
-    LOG_DEBUG("[%s] Error while progressing!", LOG_TAG);
+    LOG_DEBUG("[%s] Error while processing!", LOG_TAG);
     mux_->mod_fd(client->get_fd(), conn_events_ | EPOLLIN);
   }
 }

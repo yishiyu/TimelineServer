@@ -61,14 +61,8 @@ ssize_t HttpConn::read(int* errno_) {
     len = read_buff_.read_fd(sock_fd_, errno_);
     // 不能指望在没有内容读的时候 len=0
     // 其实这个时候 len = readv() = -1, errno = EAGAIN
-    if (len < 0) {
-      if (*errno_ == EAGAIN) {
-        // 成功读到内容且无新内容可读了已经
-        return 0;
-      } else {
-        // 没有读到东西
-        return -1;
-      }
+    if (len <= 0) {
+      return len;
     }
   } while (true);
 }
@@ -81,13 +75,8 @@ ssize_t HttpConn::write(int* errno_) {
     // 和 read 一样,不能指望在没东西可写的时候 len=0
     // 应该根据 get_writable_bytes() 判断是否成功
     if (len <= 0) {
-      if (get_writable_bytes() == 0) {
-        // 传输完成
-        return 0;
-      } else {
         *errno_ = errno;
-        return -1;
-      }
+        return len;
     }
 
     if (static_cast<size_t>(len) > iov_[0].iov_len) {

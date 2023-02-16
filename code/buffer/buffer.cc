@@ -106,7 +106,6 @@ ssize_t Buffer::read_fd(int fd, int* errno_) {
 
   if (len < 0) {
     *errno_ = errno;
-    return len;
   } else if (static_cast<size_t>(len) <= writable) {
     // buffer 大小足够,没有写入申请的 buff 中
     write_pos_ += len;
