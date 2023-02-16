@@ -278,9 +278,13 @@ void Server::deal_new_conn_() {
   do {
     int fd = accept(listen_fd_, (struct sockaddr*)&addr, &len);
     if (fd < 0) {
-      LOG_ERROR("[%s] New connection creation failed with errno:[%d]", LOG_TAG,
-                errno);
-      return;
+      if (errno != EAGAIN) {
+        return;
+      } else {
+        LOG_ERROR("[%s] New connection creation failed with errno:[%d]",
+                  LOG_TAG, errno);
+        return;
+      }
     }
 
     // 限制最大客户端数量
@@ -291,6 +295,7 @@ void Server::deal_new_conn_() {
     }
 
     // 成功建立连接,将新连接加入管理列表
+    lock_guard<mutex> lock(connections_[fd].mtx_);
     connections_[fd].init(fd, addr);
     if (timeout_ms_ > 0) {
       timer_->add_timer(
@@ -329,6 +334,7 @@ void Server::send_error_(int fd, const string& message) {
 }
 
 void Server::close_conn_(HttpConn* client) {
+  lock_guard<mutex> lock(client->mtx_);
   if (client->is_closed()) {
     LOG_WARN("[%s] Close a closed connection[%d].", LOG_TAG, client->get_fd());
     return;
@@ -339,6 +345,7 @@ void Server::close_conn_(HttpConn* client) {
 }
 
 void Server::extent_time_(HttpConn* client) {
+  lock_guard<mutex> lock(client->mtx_);
   if (client->is_closed()) {
     LOG_WARN("[%s] Try to extend time for a closed connection[%d].", LOG_TAG,
              client->get_fd());

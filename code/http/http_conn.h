@@ -46,6 +46,8 @@ class HttpConn {
 
   bool is_closed() const {return is_closed_;}
 
+  std::mutex mtx_;
+
  private:
   static bool is_ET_;
   static string src_dir_;

@@ -13,6 +13,9 @@
 #include "pool/thread_pool.h"
 #include "timer/timer.h"
 
+using std::lock_guard;
+using std::mutex;
+
 namespace TimelineServer {
 class Server {
  public:
