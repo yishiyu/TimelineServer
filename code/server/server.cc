@@ -454,8 +454,7 @@ void Server::on_process_(HttpConn* client) {
     // 处理报文成功,等待可写时回复
     mux_->mod_fd(client->get_fd(), conn_events_ | EPOLLOUT);
   } else {
-    // 处理失败,等待重新接收报文
-    LOG_DEBUG("[%s] Error while processing!", LOG_TAG);
+    // 处理失败,等待重新接收报文(可能是未接收完请求体)
     mux_->mod_fd(client->get_fd(), conn_events_ | EPOLLIN);
   }
 }

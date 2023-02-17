@@ -26,9 +26,10 @@ void HttpConn::init(int sock_fd, const sockaddr_in& sock_addr) {
   // 清理缓存
   read_buff_.clear();
   write_buff_.clear();
+  request_.clear();
   // LOG
-  LOG_INFO("[%s] Client[%d](%s:%d) in, userCount:%d", LOG_TAG, sock_fd_, get_ip().data(),
-           get_port(), (int)user_count_);
+  LOG_INFO("[%s] Client[%d](%s:%d) in, userCount:%d", LOG_TAG, sock_fd_,
+           get_ip().data(), get_port(), (int)user_count_);
 }
 
 void HttpConn::close_conn() {
@@ -40,9 +41,12 @@ void HttpConn::close_conn() {
     // 关闭资源
     close(sock_fd_);
     response_.unmap_file();
+    // 清理缓存
+    read_buff_.clear();
+    write_buff_.clear();
     // LOG
-    LOG_INFO("[%s] Client[%d](%s:%d) quit, UserCount:%d", LOG_TAG, sock_fd_, get_ip().data(),
-             get_port(), (int)user_count_);
+    LOG_INFO("[%s] Client[%d](%s:%d) quit, UserCount:%d", LOG_TAG, sock_fd_,
+             get_ip().data(), get_port(), (int)user_count_);
   }
 }
 
@@ -75,8 +79,8 @@ ssize_t HttpConn::write(int* errno_) {
     // 和 read 一样,不能指望在没东西可写的时候 len=0
     // 应该根据 get_writable_bytes() 判断是否成功
     if (len <= 0) {
-        *errno_ = errno;
-        return len;
+      *errno_ = errno;
+      return len;
     }
 
     if (static_cast<size_t>(len) > iov_[0].iov_len) {
@@ -103,13 +107,19 @@ bool HttpConn::process() {
   }
 
   // 解析报文
-  if (request_.parse(read_buff_)) {
+  auto result = request_.parse(read_buff_);
+  if (result == HttpRequest::PARSE_RESULT::PR_SUCCESS) {
     // 返回成功报文
     response_.init(src_dir_, request_.get_path(), request_.get_is_keep_alive(),
                    200);
+  } else if (result == HttpRequest::PARSE_RESULT::PR_INCOMPLETE) {
+    // 报文体未接收完毕
+    LOG_DEBUG("[%s] Try to continue to receive.", LOG_TAG)
+    return false;
   } else {
     // 返回失败报文
-    response_.init(src_dir_, request_.get_path(), false, 400);
+    assert(result == HttpRequest::PARSE_RESULT::PR_ERROR);
+    response_.init(src_dir_, request_.get_path(), false, 500);
   }
 
   // 响应报文
@@ -123,14 +133,14 @@ bool HttpConn::process() {
     iov_[1].iov_base = response_.get_file();
     iov_[1].iov_len = response_.get_file_size();
     iov_count_ = 2;
-  }else{
+  } else {
     iov_[1].iov_base = nullptr;
     iov_[1].iov_len = 0;
     iov_count_ = 1;
   }
 
-  LOG_DEBUG("[%s] filesize:%d, response size:%d", LOG_TAG, response_.get_file_size(),
-            get_writable_bytes());
+  LOG_DEBUG("[%s] filesize:%d, response size:%d", LOG_TAG,
+            response_.get_file_size(), get_writable_bytes());
   return true;
 }
 

@@ -19,18 +19,25 @@ class HttpRequest {
  public:
   // 解析请求的有限状态机
   enum PARSE_STATE {
-    REQUEST_LINE,
-    HEADERS,
-    BODY,
-    FINISH,
-    ERROR,
+    PS_REQUEST_LINE,
+    PS_HEADERS,
+    PS_BODY,
+    PS_FINISH,
+    PS_ERROR,
+  };
+
+  enum PARSE_RESULT {
+    PR_ERROR,
+    PR_INCOMPLETE,
+    PR_SUCCESS,
   };
 
   HttpRequest() { init(); }
   ~HttpRequest() = default;
 
   void init();
-  bool parse(Buffer& buffer);
+  void clear();
+  PARSE_RESULT parse(Buffer& buffer);
 
   string get_path() const { return path_; };
   string& get_path() { return path_; };
@@ -53,9 +60,9 @@ class HttpRequest {
 
  private:
   // 解析HTTP请求
-  bool parse_request_line_(const string& line);
-  bool parse_header_(const string& line);
-  bool parse_body_(const string& line);
+  PARSE_STATE parse_request_line_(const string& line);
+  PARSE_STATE parse_header_(const string& line);
+  PARSE_STATE parse_body_(const string& line);
 
   // 工具函数(路径补全/json解析)
   void path_complete_();
