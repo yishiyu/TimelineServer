@@ -29,7 +29,8 @@ bool router_login(const HttpRequest& request, Buffer& buffer) {
     LOG_DEBUG("[%s] Empty Username or Empty Passwd!", LOG_TAG);
 
     result["action_result"] = false;
-    result["result_info"] = Json::object{{"error_info", "帐号密码错误"}};
+    result["result_info"] =
+        Json::object{{"error_info", "Empty Username or Empty Passwd!"}};
     buffer.write_buffer(((Json)result).dump());
     LOG_DEBUG("[%s] User[%s] login failed because of wrong password!", LOG_TAG,
               user_name.data());
@@ -52,6 +53,7 @@ bool router_login(const HttpRequest& request, Buffer& buffer) {
   sql_pstmt->setString(1, user_name);
 
   // 查询结果
+  uint64_t user_id = 0;
   std::shared_ptr<sql::ResultSet> sql_result(sql_pstmt->executeQuery());
   if (sql_result->rowsCount() > 1) {
     LOG_WARN("[%s] 存在重名用户: %s", LOG_TAG, user_name.data());
@@ -70,22 +72,24 @@ bool router_login(const HttpRequest& request, Buffer& buffer) {
     sql_pstmt_create_user->execute();
     LOG_DEBUG("[%s], User[%s] created successfully!", LOG_TAG,
               user_name.data());
-    // 重新执行查询语句
-    sql_result.reset(sql_pstmt->executeQuery());
 
-    // if (sql_pstmt_create_user->execute()) {
-    //   LOG_DEBUG("User[%s] created successfully!", user_name.data());
-    //   // 重新执行查询语句
-    //   sql_result.reset(sql_pstmt->executeQuery());
-    // } else {
-    //   // 创建用户失败
-    //   result["action_result"] = false;
-    //   result["result_info"] = Json::object{{"error_info", "创建用户失败"}};
-    //   buffer.write_buffer(((Json)result).dump());
+    try {
+      std::shared_ptr<sql::PreparedStatement> sql_pstmt_get_id(
+          conn.connection->prepareStatement(
+              "select last_insert_id() as user_id;"));
 
-    //   LOG_DEBUG("Failed to create user[%s]!", user_name.data());
-    //   return true;
-    // }
+      std::shared_ptr<sql::ResultSet> sql_result_get_id(
+          sql_pstmt_get_id->executeQuery());
+
+      sql_result_get_id->next();
+      user_id = sql_result_get_id->getUInt64("user_id");
+    } catch (const sql::SQLException& e) {
+      LOG_ERROR("[%s] SQLException: %s", LOG_TAG, e.what());
+      return false;
+    } catch (const std::exception& e) {
+      LOG_ERROR("[%s] Exception: %s", LOG_TAG, e.what());
+      return false;
+    }
 
   } else {
     sql_result->next();
@@ -93,11 +97,12 @@ bool router_login(const HttpRequest& request, Buffer& buffer) {
     string temp = sql_result->getString("user_passwd").asStdString();
     if (temp == user_passwd) {
       // 用户验证成功
-      // LOG_DEBUG("User[%s] login successfully!", user_name.data());
+      LOG_DEBUG("User[%s] login successfully!", user_name.data());
+      user_id = sql_result->getUInt64("user_id");
     } else {
       // 用户验证失败
       result["action_result"] = false;
-      result["result_info"] = Json::object{{"error_info", "帐号密码错误"}};
+      result["result_info"] = Json::object{{"error_info", "Wrong password!"}};
       buffer.write_buffer(((Json)result).dump());
       LOG_DEBUG("[%s] User[%s] login failed because of wrong password!",
                 LOG_TAG, user_name.data());
@@ -109,7 +114,7 @@ bool router_login(const HttpRequest& request, Buffer& buffer) {
   string action_token = token_generator(20);
 
   // 记录用户登录状态
-  uint64_t user_id = sql_result->getUInt64("user_id");
+
   online_lists_token2id[action_token] = user_id;
   online_lists_id2token[user_id] = action_token;
 
@@ -128,7 +133,7 @@ bool router_logout(const HttpRequest& request, Buffer& buffer) {
   if (online_lists_token2id.count(action_token) == 0) {
     // 用户未登录
     result["action_result"] = false;
-    result["result_info"] = Json::object{{"error_info", "用户未登录"}};
+    result["result_info"] = Json::object{{"error_info", "Not logged in"}};
     buffer.write_buffer(((Json)result).dump());
 
     LOG_DEBUG("[%s] User(action_token:[%s]) logout failed!", LOG_TAG,
@@ -155,7 +160,7 @@ bool router_query(const HttpRequest& request, Buffer& buffer) {
   if (online_lists_token2id.count(action_token) == 0) {
     // 用户未登录
     result["action_result"] = false;
-    result["result_info"] = Json::object{{"error_info", "用户未登录"}};
+    result["result_info"] = Json::object{{"error_info", "Not logged in"}};
     buffer.write_buffer(((Json)result).dump());
 
     LOG_DEBUG("[%s] User(action_token:[%s]) query failed!(not logged in)",
@@ -202,7 +207,7 @@ bool router_add(const HttpRequest& request, Buffer& buffer) {
   if (online_lists_token2id.count(action_token) == 0) {
     // 用户未登录
     result["action_result"] = false;
-    result["result_info"] = Json::object{{"error_info", "用户未登录"}};
+    result["result_info"] = Json::object{{"error_info", "Not logged in"}};
     buffer.write_buffer(((Json)result).dump());
 
     LOG_DEBUG("[%s] User(action_token:[%s]) add failed!(not logged in)",
@@ -237,7 +242,34 @@ bool router_add(const HttpRequest& request, Buffer& buffer) {
   // 没找到C++的文档,Java的文档里是这么说的
   // true if the first result is a ResultSet object; false if it is an update
   // count or there are no results 先不用这个返回值判断是否成功插入
-  sql_pstmt->execute();
+  try {
+    sql_pstmt->execute();
+  } catch (const sql::SQLException& e) {
+    LOG_ERROR("[%s] SQLException: %s", LOG_TAG, e.what());
+    return false;
+  } catch (const std::exception& e) {
+    LOG_ERROR("[%s] Exception: %s", LOG_TAG, e.what());
+    return false;
+  }
+
+  try {
+    std::shared_ptr<sql::PreparedStatement> sql_pstmt_get_id(
+        conn.connection->prepareStatement(
+            "select last_insert_id() as task_id;"));
+
+    std::shared_ptr<sql::ResultSet> sql_result(
+        sql_pstmt_get_id->executeQuery());
+
+    sql_result->next();
+    result["result_info"] = Json::object{
+        {"task_id", sql_result->getString("task_id").asStdString()}};
+  } catch (const sql::SQLException& e) {
+    LOG_ERROR("[%s] SQLException: %s", LOG_TAG, e.what());
+    return false;
+  } catch (const std::exception& e) {
+    LOG_ERROR("[%s] Exception: %s", LOG_TAG, e.what());
+    return false;
+  }
 
   result["action_result"] = true;
   buffer.write_buffer(((Json)result).dump());
@@ -253,7 +285,7 @@ bool router_update(const HttpRequest& request, Buffer& buffer) {
   if (online_lists_token2id.count(action_token) == 0) {
     // 用户未登录
     result["action_result"] = false;
-    result["result_info"] = Json::object{{"error_info", "用户未登录"}};
+    result["result_info"] = Json::object{{"error_info", "Not logged in"}};
     buffer.write_buffer(((Json)result).dump());
 
     LOG_DEBUG("[%s] User(action_token:[%s]) update failed!(not logged in)",
@@ -284,7 +316,16 @@ bool router_update(const HttpRequest& request, Buffer& buffer) {
   sql_pstmt->setInt(3, priority);
   sql_pstmt->setUInt64(4, task_id);
 
-  int update_count = sql_pstmt->executeUpdate();
+  int update_count = 0;
+  try {
+    update_count = sql_pstmt->executeUpdate();
+  } catch (const sql::SQLException& e) {
+    LOG_ERROR("[%s] SQLException: %s", LOG_TAG, e.what());
+    return false;
+  } catch (const std::exception& e) {
+    LOG_ERROR("[%s] Exception: %s", LOG_TAG, e.what());
+    return false;
+  }
 
   result["action_result"] = true;
   buffer.write_buffer(((Json)result).dump());
@@ -300,7 +341,7 @@ bool router_delete(const HttpRequest& request, Buffer& buffer) {
   if (online_lists_token2id.count(action_token) == 0) {
     // 用户未登录
     result["action_result"] = false;
-    result["result_info"] = Json::object{{"error_info", "用户未登录"}};
+    result["result_info"] = Json::object{{"error_info", "Not logged in"}};
     buffer.write_buffer(((Json)result).dump());
 
     LOG_DEBUG("[%s] User(action_token:[%s]) delete failed!(not logged in)",
