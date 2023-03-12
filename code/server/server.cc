@@ -417,7 +417,11 @@ void Server::on_write_(HttpConn* client) {
     LOG_DEBUG("[%s] Write request successfully![%d].", LOG_TAG,
               client->get_fd());
 
-    deal_close_conn_(client);
+    if(client->is_keep_alive()){
+      on_process_(client);
+      return;
+    }
+
   } else if (ret < 0) {
     if (errno_ == EAGAIN) {
       // 暂时不可写,等待机会再写
@@ -430,15 +434,6 @@ void Server::on_write_(HttpConn* client) {
   LOG_DEBUG("[%s] Write request failed![%d].", LOG_TAG, client->get_fd());
 
   deal_close_conn_(client);
-  // 传输完成
-  // mux_->mod_fd(client->get_fd(), conn_events_);
-  // if (client->is_keep_alive()) {
-  //   mux_->mod_fd(client->get_fd(), conn_events_ | EPOLLIN);
-  // } else {
-  //   LOG_INFO("[%s] Close connection[%d] after write!", LOG_TAG,
-  //            client->get_fd());
-  //   deal_close_conn_(client);
-  // }
 }
 
 void Server::on_process_(HttpConn* client) {
