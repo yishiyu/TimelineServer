@@ -279,7 +279,7 @@ void Server::deal_new_conn_() {
   do {
     int fd = accept(listen_fd_, (struct sockaddr*)&addr, &len);
     if (fd < 0) {
-      if (errno != EAGAIN) {
+      if (errno == EAGAIN) {
         return;
       } else {
         LOG_ERROR("[%s] New connection creation failed with errno:[%d]",

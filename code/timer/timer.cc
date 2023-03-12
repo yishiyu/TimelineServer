@@ -65,7 +65,7 @@ void Timer::adjust(timer_id id, int timeout) {
 void Timer::clear() {
   
 
-  LOG_DEBUG("[%s] timers are cleared up.", LOG_TAG);
+  // LOG_DEBUG("[%s] timers are cleared up.", LOG_TAG);
   timer_ref_.clear();
   heap_.clear();
 }
@@ -85,7 +85,7 @@ void Timer::tick() {
     }
 
     // 触发该定时器
-    LOG_DEBUG("[%s] timer[%d] triggerd.", LOG_TAG, node.id);
+    // LOG_DEBUG("[%s] timer[%d] triggerd.", LOG_TAG, node.id);
     node.cb();
     delete_(0);
   }

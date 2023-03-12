@@ -63,19 +63,19 @@ TEST_F(SQLPoolTest, RAII) {
     sql::Statement* stmt = conn.connection->createStatement();
 
     stmt->execute(
-        "DELETE FROM books "
-        "WHERE id=111;");
+        "DELETE FROM users "
+        "WHERE user_id=999;");
 
     stmt->execute(
-        "INSERT INTO books(id, title, author) "
-        "VALUES (111, \"C++ Primer Plus\", \"Stephen Prata\")");
+        "INSERT INTO users(user_id, user_name, user_passwd) "
+        "VALUES (999, \"yishiyu\", \"explosion\")");
 
-    sql::ResultSet* result = stmt->executeQuery("SELECT * from books");
+    sql::ResultSet* result = stmt->executeQuery("SELECT * from users;");
 
     while (result->next()) {
-      cout << "\tid: " << result->getInt("id")
-           << "\ttitle: " << result->getString("title")
-           << "\tauthor: " << result->getInt("author") << endl;
+      cout << "\tuser_id: " << result->getInt("user_id")
+           << "\tuser_name: " << result->getString("user_name")
+           << "\tuser_passwd: " << result->getInt("user_passwd") << endl;
     }
 
     delete result;
