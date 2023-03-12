@@ -227,7 +227,7 @@ bool router_add(const HttpRequest& request, Buffer& buffer) {
   uint64_t user_id = online_lists_token2id[action_token];
   string time = request.query_post("action_info")["time"].string_value();
   string task = request.query_post("action_info")["task"].string_value();
-  int priority = request.query_post("action_info")["priority"].int_value();
+  int priority = atoi(request.query_post("action_info")["priority"].string_value().data());
 
   std::shared_ptr<sql::PreparedStatement> sql_pstmt(
       conn.connection->prepareStatement("insert into tasks(user_id, time, "
@@ -302,7 +302,8 @@ bool router_update(const HttpRequest& request, Buffer& buffer) {
   }
 
   // 准备update语句
-  uint64_t task_id = request.query_post("action_info")["task_id"].int_value();
+  uint64_t task_id =
+      std::stoi(request.query_post("action_info")["task_id"].string_value());
   string time = request.query_post("action_info")["time"].string_value();
   string task = request.query_post("action_info")["task"].string_value();
   int priority = request.query_post("action_info")["priority"].int_value();
@@ -359,7 +360,7 @@ bool router_delete(const HttpRequest& request, Buffer& buffer) {
 
   // 准备delete语句
   uint64_t user_id = online_lists_token2id[action_token];
-  uint64_t task_id = request.query_post("action_info")["task_id"].int_value();
+  uint64_t task_id = std::stoi(request.query_post("action_info")["task_id"].string_value());
 
   std::shared_ptr<sql::PreparedStatement> sql_pstmt(
       conn.connection->prepareStatement(
@@ -367,12 +368,14 @@ bool router_delete(const HttpRequest& request, Buffer& buffer) {
 
   sql_pstmt->setUInt64(1, task_id);
   sql_pstmt->setUInt64(2, user_id);
+  LOG_DEBUG("[%s] Delete task[%d] which owned to user[%d]", LOG_TAG, task_id,
+            user_id);
 
   sql_pstmt->execute();
 
   result["action_result"] = true;
   buffer.write_buffer(((Json)result).dump());
 
-  LOG_DEBUG("[%s] User[task_id:%d] update successfully!", LOG_TAG, task_id);
+  LOG_DEBUG("[%s] User[task_id:%d] delete successfully!", LOG_TAG, task_id);
   return true;
 }

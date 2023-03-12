@@ -10,7 +10,6 @@ bin/
 
 # 数据文件夹
 data/log/*
-data/resources/*
 data/test/*/*
 
 # 测试数据文件

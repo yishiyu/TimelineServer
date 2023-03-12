@@ -8,6 +8,8 @@ int main() {
 
   // 注册静态路由
   server.register_static_router("/", "/index.html");
+  server.register_static_router("/login", "/login/index.html");
+  server.register_static_router("/dashboard", "/index.html");
 
   // 注册动态路由
   server.register_dynamic_router("/action/login", router_login);
